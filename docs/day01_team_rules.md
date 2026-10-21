@@ -2,7 +2,12 @@
 
 ## 👥 팀원
 
-김지연, 박유정, 김도엽, 이명석
+| 이름 | GitHub |
+|---|---|
+| 김지연 (팀장) | [@elin-115](https://github.com/elin-115) |
+| 박유정 | [@RJ-Park](https://github.com/RJ-Park) |
+| 김도엽 | [@yeobbro](https://github.com/yeobbro) |
+| 김명섭 | [@fpemghs](https://github.com/fpemghs) |
 
 ## 📋 팀 규칙
 
