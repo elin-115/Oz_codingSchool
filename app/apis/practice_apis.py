@@ -132,7 +132,6 @@ async def create_user(data: UserCreateRequest) -> UserResponse:
 # [C] 회원 정보 수정 - PATCH /{user_id}
 class UserUpdateRequest(BaseModel):
     # 수정할 회원 정보
-    name: NameType | None = None
     age: AgeType | None = None
     email: EmailType | None = None
     password: PasswordType | None = None
@@ -140,6 +139,13 @@ class UserUpdateRequest(BaseModel):
 @practice_router.patch("/{user_id}", status_code=200)
 async def update_user(user_id: int, data: UserUpdateRequest) -> UserResponse:
     user = find_user(user_id)
+    
+    # 입력된 값만 꺼내기 (None인 항목은 제외)
+    update_data = data.model_dump(exclude_none=True)
+
+    # 수정할 항목이 하나도 없으면 400 Bad Request
+    if not update_data:
+        raise HTTPException(status_code=400, detail="수정할 항목을 하나 이상 입력해주세요.")
 
     # 이미 존재하는 이메일일 때 상태코드 409 (중복된 내용으로 충돌이 발생하면 사용하는 코드)
     if data.email and any(
@@ -147,10 +153,10 @@ async def update_user(user_id: int, data: UserUpdateRequest) -> UserResponse:
     ):
         raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
 
-    # 수정할 값이 None이 아닌 경우에만 업데이트
-    for field, value in data.model_dump(exclude_unset=True).items():
+    # 입력된 항목만 업데이트
+    for field, value in update_data.items():
         user[field] = value
-
+    
     return UserResponse.model_validate(user)
 
 
