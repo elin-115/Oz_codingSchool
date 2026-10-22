@@ -1,4 +1,4 @@
-# 🌿 2일차 Git Branch 전략
+# 🌿 Day02 Git Branch 전략
 
 ## 1. 브랜치 전략이 필요한 이유
 
