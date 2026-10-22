@@ -2,9 +2,12 @@
 
 흉부 X-Ray 이미지 기반 폐렴 판독 모델을 활용한 **폐렴 환자 관리 백오피스** 프로젝트입니다.
 
-## 📌 팀 규칙
+## 📚 문서
 
-팀 규칙과 Git 협업 규칙은 [docs/day01_team_rules.md](docs/day01_team_rules.md)에 정리되어 있습니다.
+| Day | 문서 | 내용 |
+|---|---|---|
+| Day01 | [팀 규칙](docs/day01_team_rules.md) | 팀원, 팀 규칙, Git 협업 규칙, 커밋 컨벤션 |
+| Day02 | [Git Branch 전략](docs/day02_git_branch_전략.md) | Git Flow와 GitHub Flow 비교, 우리 팀 브랜치 전략 |
 
 ## Alembic Migration Guide
 
