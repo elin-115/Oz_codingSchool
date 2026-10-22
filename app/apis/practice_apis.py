@@ -99,7 +99,10 @@ async def get_user_list() -> list[UserResponse]:
 
 
 # [A] 회원 상세 조회 - GET /{user_id}
-
+@practice_router.get("/{user_id}", status_code=200)
+async def get_user_detail(user_id: int) -> UserResponse:
+    user = find_user(user_id)
+    return UserResponse.model_validate(user)
 
 # [B] 회원 생성 - POST ""
 
@@ -108,3 +111,7 @@ async def get_user_list() -> list[UserResponse]:
 
 
 # [A] 회원 삭제 - DELETE /{user_id}
+@practice_router.delete("/{user_id}", status_code=204)
+async def delete_user(user_id: int) -> None:
+    user = find_user(user_id)
+    user_list.remove(user)
