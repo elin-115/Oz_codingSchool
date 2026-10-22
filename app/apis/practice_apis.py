@@ -105,6 +105,28 @@ async def get_user_detail(user_id: int) -> UserResponse:
     return UserResponse.model_validate(user)
 
 # [B] 회원 생성 - POST ""
+class UserCreateRequest(BaseModel):
+    # 받아야할 회원 정보
+    name: NameType
+    age: AgeType
+    email: EmailType
+    password: PasswordType
+
+@practice_router.post("", status_code=201)
+async def create_user(data: UserCreateRequest) -> UserResponse:
+    # 이미 존재하는 이메일일 때 상태코드 409 (중복된 내용으로 충돌이 발생하면 사용하는 코드)
+    if any(user["email"] == data.email for user in user_list):
+        raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
+
+    # 새 id 생성: 지금 있는 id 중 가장 큰 값 + 1
+    new_id = max((user["id"] for user in user_list), default=0) + 1
+
+    # 새 회원을 user_list에 추가
+    new_user = {"id": new_id, **data.model_dump()}
+    user_list.append(new_user)
+
+    # password를 제외하고 응답
+    return UserResponse.model_validate(new_user)
 
 
 # [C] 회원 정보 수정 - PATCH /{user_id}
