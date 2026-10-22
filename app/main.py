@@ -5,7 +5,12 @@ from fastapi import FastAPI
 from starlette.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
+from app.apis.practice_apis import practice_router
+
 app = FastAPI()
+
+# 실습 API 라우터 등록 (아래 catch_all 라우트보다 먼저 등록해야 함)
+app.include_router(practice_router)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
