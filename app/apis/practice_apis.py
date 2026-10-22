@@ -98,13 +98,13 @@ async def get_user_list() -> list[UserResponse]:
     return [UserResponse.model_validate(user) for user in user_list]
 
 
-# [김도엽] 회원 상세 조회 - GET /{user_id}
+# [A] 회원 상세 조회 - GET /{user_id}
 
 
-# [박유정] 회원 생성 - POST ""
+# [B] 회원 생성 - POST ""
 
 
-# [이명석] 회원 정보 수정 - PATCH /{user_id}
+# [C] 회원 정보 수정 - PATCH /{user_id}
 
 
-# [김도엽] 회원 삭제 - DELETE /{user_id}
+# [A] 회원 삭제 - DELETE /{user_id}
