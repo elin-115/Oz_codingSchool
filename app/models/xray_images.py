@@ -5,18 +5,20 @@ from sqlalchemy import BigInteger, DateTime, ForeignKey, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db.databases import Base
+from app.core.db.models import SoftDeleteMixin
 
 if TYPE_CHECKING:
     from app.models.medical_records import MedicalRecord
     from app.models.users import User
 
 
-class XrayImage(Base):
+class XrayImage(Base, SoftDeleteMixin):
     __tablename__ = "xray_images"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    # 이미지가 남아 있는 진료 기록은 실제로 삭제되지 않도록 RESTRICT
     record_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("medical_records.id", ondelete="CASCADE"), index=True
+        BigInteger, ForeignKey("medical_records.id", ondelete="RESTRICT"), index=True
     )
     # ERD상 NOT NULL이므로 업로더가 있는 사용자는 삭제되지 않도록 RESTRICT
     uploader_id: Mapped[int] = mapped_column(
