@@ -10,6 +10,7 @@
 | Day02 | [Git Branch 전략](docs/day02_git_branch_전략.md) | Git Flow와 GitHub Flow 비교, 우리 팀 브랜치 전략 |
 | Day03 | [프로젝트 뜯어보기](docs/day03_프로젝트_뜯어보기.md) | 디렉터리·파일 역할, DB 연결, alembic, API 구현 흐름 |
 | Day03 | [DB 마이그레이션](docs/day03_db_migration.md) | ERD 기반 모델 작성, 마이그레이션 결과, 트러블슈팅 |
+| Day03 | [작업 내역](docs/day03_작업내역.md) | 새로 만든 파일, 수정한 파일, 이유와 방법 |
 
 ## Alembic Migration Guide
 
