@@ -159,9 +159,11 @@ DBeaver 접속 정보: `localhost` / `3306` / DB `ai_health` / 사용자 `ozcodi
 
 ### 박유정 (@RJ-Park)
 
-<!-- ![박유정 DBeaver](images/day03_db_RJ-Park.png) -->
+![박유정 DBeaver](images/day03_db_RJ-Park.png)
 
 - 적용 중 겪은 문제:
+  - 터미널에서 docker 명령을 찾지 못함 → Docker Desktop을 실행해 Engine running을 확인하고, 터미널을 새로 열어 해결
+  - DBeaver 연결 후 화면이 비어 보임 → 왼쪽 Connections 패널이 닫혀 있었음. Window → Connections로 다시 열어 해결
 
 ### 김도엽 (@yeobbro)
 
