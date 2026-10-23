@@ -172,6 +172,6 @@ DBeaver 접속 정보: `localhost` / `3306` / DB `ai_health` / 사용자 `ozcodi
 
 ### 이명석 (@fpemghs)
 
-<!-- ![이명석 DBeaver](images/day03_db_fpemghs.png) -->
+![이명석 DBeaver](images/day03_db_fpemghs.png)
 
-- 적용 중 겪은 문제:
+- 적용 중 겪은 문제: 최초 SQLAlchemy연결로 마이그레이션에 대해 배우고 이를 활용하기 위해 docker와 DBeaver를 처음 사용하다 보니 연결및 실행에 어려움이 있엇고 특히 DBeaver 사용시 데이터 베이스에 자동으로 연결되지 않아 연결과정에 어려움이 있엇으나, 팀원들의 도움으로 무사히 연결하여 데이터베이스 마이그레이션 상태를 확인할 수 있었다. 
