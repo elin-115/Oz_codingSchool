@@ -1,7 +1,7 @@
 # 📝 Day03 작업 내역
 
 - 날짜: 2026-10-23
-- 브랜치: `feature/db-models_261023` (PR #11), `feature/soft-delete_261023`
+- 브랜치: `feature/db-models_261023` (PR #11), `feature/soft-delete_261023` (PR #12), `feature/swagger-info_261023`
 - 작업자: 김지연 / 리뷰: 박유정, 김도엽, 이명석
 
 ## 요약
@@ -131,9 +131,20 @@ PR #11 merge 후, 삭제 규칙을 다시 검토해 `feature/soft-delete_261023`
 | 진료 기록이 있는 환자 실제 삭제 | 거부 |
 | 환자 삭제 표시 | 조회 대상에서 빠지고 DB에는 보관됨 |
 
+## 🔄 추가 변경: Swagger에 프로젝트 정보 표시
+
+### `app/main.py` - FastAPI 앱 정보
+
+- **왜**: Swagger 화면 제목이 기본값 "FastAPI"로만 보여 어떤 프로젝트인지, 누가 만들었는지 알 수 없었다.
+- **어떻게**: `FastAPI()`에 정보를 추가했다.
+  - `title`: 폐렴 환자 관리 백오피스
+  - `description`: 프로젝트 소개와 팀원 4명의 GitHub 링크 표 (마크다운)
+  - `contact`: 팀 레포 주소. FastAPI의 `contact`는 한 명만 넣을 수 있어 팀원 목록은 `description`에 넣었다.
+- **주의**: `description` 문자열을 코드 들여쓰기에 맞춰 들여쓰면, 마크다운에서 4칸 이상 들여쓴 줄은 코드 블록이 되어 표가 그려지지 않는다. 그래서 문자열 내용은 들여쓰지 않았다.
+
 ## ⏭️ 남은 작업
 
 - [x] PR 리뷰 (박유정, 김도엽, 이명석)
-- [ ] 삭제 표시 변경 PR 리뷰·merge
+- [x] 삭제 표시 변경 PR 리뷰·merge
 - [ ] 팀원 로컬 DB 세팅, 캡처, 학습 정리 PR
 - [ ] develop → main 반영
