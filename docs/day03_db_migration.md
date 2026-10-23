@@ -85,6 +85,7 @@ uv run alembic upgrade head
 ## 4. DB 적용 결과 (DBeaver)
 
 `ai_health` DB에 테이블 5개와 alembic 버전 관리용 `alembic_version` 테이블이 생성되었다.
+두 번째 마이그레이션까지 적용해 모든 테이블에 삭제 표시 컬럼(`is_deleted`, `deleted_at`)이 추가된 상태다.
 
 ![DBeaver ER Diagram](images/day03_erd_dbeaver.png)
 
@@ -148,7 +149,7 @@ DBeaver 접속 정보: `localhost` / `3306` / DB `ai_health` / 사용자 `ozcodi
 
 ## 7. 팀원별 적용 확인
 
-팀원 모두 각자 로컬에 MySQL을 띄우고 마이그레이션을 적용해 같은 스키마가 만들어지는 것을 확인했다.
+팀원 모두 각자 로컬에 MySQL을 띄우고 마이그레이션을 적용해 같은 스키마가 만들어지는 것을 확인했다.  
 캡처 파일은 `docs/images/day03_db_GitHub아이디.png`로 저장한다.
 
 ### 김지연 (@elin-115)
