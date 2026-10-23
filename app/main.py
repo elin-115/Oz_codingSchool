@@ -7,7 +7,25 @@ from starlette.responses import FileResponse
 
 from app.apis.practice_apis import practice_router
 
-app = FastAPI()
+app = FastAPI(
+    title="폐렴 환자 관리 백오피스",
+    # 마크다운은 4칸 이상 들여쓰면 코드 블록이 되므로 description 내용은 들여쓰지 않음
+    description="""
+흉부 X-Ray 이미지 기반 폐렴 판독 모델을 활용한 환자 관리 백오피스 API
+
+### 👥 3조 팀원
+| 이름 | GitHub |
+|---|---|
+| 김지연 | [@elin-115](https://github.com/elin-115) |
+| 박유정 | [@RJ-Park](https://github.com/RJ-Park) |
+| 김도엽 | [@yeobbro](https://github.com/yeobbro) |
+| 이명석 | [@fpemghs](https://github.com/fpemghs) |
+""",
+    contact={
+        "name": "3조 GitHub Repository",
+        "url": "https://github.com/elin-115/Oz_codingSchool",
+    },
+)
 
 # 실습 API 라우터 등록 (아래 catch_all 라우트보다 먼저 등록해야 함)
 app.include_router(practice_router)
