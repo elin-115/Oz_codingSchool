@@ -118,3 +118,32 @@ uv run alembic upgrade head
 
 DBeaver 접속 정보: `localhost` / `3306` / DB `ai_health` / 사용자 `ozcoding` / 비밀번호 `pw1234`
 (`Public Key Retrieval is not allowed` 오류가 나면 Driver properties에서 `allowPublicKeyRetrieval`을 `true`로 설정)
+
+## 7. 팀원별 적용 확인
+
+팀원 모두 각자 로컬에 MySQL을 띄우고 마이그레이션을 적용해 같은 스키마가 만들어지는 것을 확인했다.
+캡처 파일은 `docs/images/day03_db_GitHub아이디.png`로 저장한다.
+
+### 김지연 (@elin-115)
+
+![김지연 DBeaver](images/day03_erd_dbeaver.png)
+
+- 적용 중 겪은 문제: DBeaver 첫 실행 시 macOS 보안 확인 창이 숨어 있어 앱이 뜨지 않음 → 허용 후 정상 실행
+
+### 박유정 (@RJ-Park)
+
+<!-- ![박유정 DBeaver](images/day03_db_RJ-Park.png) -->
+
+- 적용 중 겪은 문제:
+
+### 김도엽 (@yeobbro)
+
+<!-- ![김도엽 DBeaver](images/day03_db_yeobbro.png) -->
+
+- 적용 중 겪은 문제:
+
+### 이명석 (@fpemghs)
+
+<!-- ![이명석 DBeaver](images/day03_db_fpemghs.png) -->
+
+- 적용 중 겪은 문제:
