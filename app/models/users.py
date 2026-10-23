@@ -4,14 +4,14 @@ from sqlalchemy import BigInteger, Boolean, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db.databases import Base
-from app.core.db.models import TimestampMixin
+from app.core.db.models import SoftDeleteMixin, TimestampMixin
 from app.core.enums import Department, Gender, UserRole
 
 if TYPE_CHECKING:
     from app.models.xray_images import XrayImage
 
 
-class User(Base, TimestampMixin):
+class User(Base, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "users"
 
     # ERD는 integer지만, xray_images.uploader_id(bigint)가 참조하므로 타입을 맞춰 BigInteger 사용

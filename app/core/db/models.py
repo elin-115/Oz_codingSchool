@@ -25,4 +25,5 @@ class TimestampMixin:
 
 class SoftDeleteMixin:
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 기존 행이 있는 테이블에 컬럼을 추가할 때도 False로 채워지도록 server_default 지정
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("0"))

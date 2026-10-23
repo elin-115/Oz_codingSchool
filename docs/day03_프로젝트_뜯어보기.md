@@ -4,6 +4,7 @@
 
 ```
 Oz_codingSchool
+├── README.md
 ├── alembic/                 # DB 마이그레이션 (스키마 변경 이력)
 ├── alembic.ini              # alembic 설정
 ├── app/
@@ -26,8 +27,8 @@ Oz_codingSchool
 └── uv.lock
 ```
 
-이 템플릿은 역할별로 계층을 나누는 **레이어드 아키텍처**를 따른다.
-요청은 `apis → services → repositories → models(DB)` 순서로 내려가고, 결과는 거꾸로 올라온다.
+이 템플릿은 역할별로 계층을 나누는 **레이어드 아키텍처**를 따른다.  
+요청은 `apis → services → repositories → models(DB)` 순서로 내려가고, 결과는 거꾸로 올라온다.  
 계층을 나누면 한 계층을 고쳐도 다른 계층에 주는 영향이 적고, 여러 명이 동시에 작업하기 쉽다.
 
 ## 1. 디렉터리별 역할

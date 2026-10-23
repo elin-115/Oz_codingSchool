@@ -27,6 +27,7 @@
 
 - Enum(`Gender`, `Department`, `UserRole`)은 `app/core/enums.py`에 작성했다.
 - `created_at`, `updated_at`은 `TimestampMixin`을 상속해 추가했다. `xray_images`는 ERD에 `updated_at`이 없어 `created_at`만 직접 작성했다.
+- 모든 테이블에 `SoftDeleteMixin`(`is_deleted`, `deleted_at`)을 추가했다. (ERD에 없는 컬럼, 아래 삭제 정책 참고)
 - 모든 모델은 `app/models/__init__.py`에 import해 alembic이 인식하도록 했다.
 
 ### 테이블 관계
@@ -39,11 +40,22 @@ erDiagram
     users ||--o{ xray_images : "uploader_id"
 ```
 
-| 관계 | 삭제 시 동작 |
+### 삭제 정책: 삭제 표시 (Soft Delete)
+
+의료 기록은 함부로 사라지면 안 되므로, 데이터를 실제로 지우지 않고 **삭제 표시만** 한다.
+
+- 삭제할 때: `is_deleted = True`, `deleted_at = 삭제 시각`으로 변경
+- 조회할 때: `is_deleted = False`인 데이터만 보여줌
+- 실제 삭제(`DELETE`)는 DB 단에서 막아둔다.
+
+| 관계 | 실제 삭제(DELETE) 시 동작 |
 |---|---|
-| 환자 → 진료 기록 | 환자를 삭제하면 진료 기록도 삭제 (`CASCADE`) |
-| 진료 기록 → X-ray, AI 결과 | 진료 기록을 삭제하면 함께 삭제 (`CASCADE`) |
+| 환자 → 진료 기록 | 진료 기록이 있는 환자는 삭제 불가 (`RESTRICT`) |
+| 진료 기록 → X-ray, AI 결과 | X-ray·AI 결과가 있는 진료 기록은 삭제 불가 (`RESTRICT`) |
 | 사용자 → X-ray | 업로드한 이미지가 있는 사용자는 삭제 불가 (`RESTRICT`) |
+
+> 처음에는 환자를 지우면 진료 기록까지 함께 지워지는 `CASCADE`로 작성했지만,
+> 팀 논의 후 기록을 보존하는 삭제 표시 방식으로 변경했다. (두 번째 마이그레이션)
 
 ## 3. 마이그레이션 과정
 
@@ -61,7 +73,14 @@ uv run alembic revision --autogenerate -m "create initial models"
 uv run alembic upgrade head
 ```
 
-생성된 마이그레이션 파일: `alembic/versions/79aafc5cfec9_create_initial_models.py`
+생성된 마이그레이션 파일
+
+| 순서 | 파일 | 내용 |
+|---|---|---|
+| 1 | `79aafc5cfec9_create_initial_models.py` | 테이블 5개 생성 |
+| 2 | `78d9440bd099_add_soft_delete_and_restrict_fk_delete.py` | 삭제 표시 컬럼 추가, FK 삭제 동작을 `RESTRICT`로 변경 |
+
+이미 반영된 1번 파일은 고치지 않고 2번 파일을 새로 추가했다. 1번을 이미 적용한 팀원도 `upgrade head`만 하면 2번까지 적용된다.
 
 ## 4. DB 적용 결과 (DBeaver)
 
@@ -76,8 +95,10 @@ uv run alembic upgrade head
 | 5개 테이블에 샘플 데이터 저장 | 성공, `role` 기본값 `pending`, `is_active` 기본값 `True` |
 | `confidence`에 150 저장 | 거부 (0~100 CheckConstraint) |
 | 같은 `chart_number` 두 번 저장 | 거부 (unique) |
-| 환자 삭제 | 진료 기록, X-ray, AI 결과까지 연쇄 삭제 |
-| `alembic downgrade -1` → `upgrade head` | 정상 삭제 후 재생성 |
+| 새 데이터의 `is_deleted` | 기본값 `False` |
+| 진료 기록이 있는 환자 실제 삭제(`DELETE`) | 거부 (`RESTRICT`) |
+| 환자 삭제 표시 | 조회 대상에서 빠지고, 환자·진료 기록은 DB에 보관됨 |
+| `alembic downgrade -1` → `upgrade head` | 두 마이그레이션 모두 정상 되돌리기 후 재적용 |
 
 ## 5. 트러블슈팅
 
@@ -104,6 +125,12 @@ uv run alembic upgrade head
 - **문제**: `alembic downgrade -1`에서 `DROP INDEX ix_xray_images_uploader_id` 오류가 발생했다.
 - **원인**: MySQL은 외래키가 사용 중인 인덱스를 먼저 삭제할 수 없는데, autogenerate가 "인덱스 삭제 → 테이블 삭제" 순서로 만들었다.
 - **해결**: `downgrade()`에서 `drop_index`를 지우고 `drop_table`만 남겼다. 테이블을 지우면 인덱스도 함께 삭제된다.
+
+### 외래키를 바꾸는 마이그레이션의 downgrade 오류
+
+- **문제**: FK 삭제 동작을 바꾸는 마이그레이션을 autogenerate로 만들자 `create_foreign_key(None, ...)`, `drop_constraint(None, ...)`처럼 이름이 비어 있었다.
+- **원인**: 모델에 FK 이름을 지정하지 않아 autogenerate가 새 FK 이름을 모른다. 이름이 없으면 downgrade에서 어떤 FK를 지울지 지정할 수 없다.
+- **해결**: MySQL이 자동으로 붙이는 이름(`테이블_ibfk_1`)을 직접 지정했다. upgrade → downgrade → upgrade를 실행해 확인했다.
 
 ## 6. 팀원 적용 방법
 
