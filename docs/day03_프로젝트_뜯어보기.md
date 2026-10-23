@@ -142,12 +142,12 @@ class User(Base, TimestampMixin):
 ```
 
 - `Base`를 상속하면 테이블로 인식된다.
-- `Mapped[타입]`과 `mapped_column()`으로 컬럼을 정의한다 (SQLAlchemy 2.0 방식).
+- `Mapped[타입]`과 `mapped_column()`으로 컬럼을 정의한다 (SQLAlchemy 2.0 방식).  
 - 다른 테이블을 참조할 때는 `ForeignKey("테이블.컬럼")`, 객체로 오갈 때는 `relationship()`을 쓴다.
 
 ### 4-2. 모델 등록 (중요!)
 
-`alembic/env.py`는 `from app import models`로 모델을 불러온다.
+`alembic/env.py`는 `from app import models`로 모델을 불러온다.  
 그래서 **`app/models/__init__.py`에 모든 모델을 import**해야 alembic이 테이블을 인식한다.
 
 ```python
@@ -173,7 +173,7 @@ alembic은 DB 스키마 변경을 **git처럼 버전으로 관리**하는 도구
 
 - `alembic.ini`의 DB 주소는 비워두고, `env.py`에서 `DATABASE_URL`로 덮어쓴다. 그래서 `.env`만 맞추면 된다.
 - `Base.metadata.create_all()`로 테이블을 직접 만들지 않는다. alembic과 섞으면 버전 기록이 어긋난다.
-- 생성된 마이그레이션 파일은 **커밋해서 팀원과 공유**한다. 팀원은 `upgrade head`만 하면 같은 스키마가 된다.
+- 생성된 마이그레이션 파일은 **커밋해서 팀원과 공유**한다. `upgrade head`만 하면 같은 스키마가 된다.
 
 ## 5. API 구현 흐름
 
@@ -224,7 +224,12 @@ Day02에서는 한 파일에 다 넣었지만, 실제 프로젝트에서는 위�
 ### 김지연 - 3. 데이터베이스 연결 설정
 
 - **이해한 점**:
+    - `databases.py`는 DB 접속 정보를 코드에 직접 쓰지 않고 `config.py`를 거쳐 `.env`에서 읽는다. 그래서 `.env` 파일이 없으면 기본값으로 접속을 시도해 연결이 실패한다. 실제로 처음에 `.env`가 없어 `.env.example`을 복사해 만들었다.
+    - `async_get_db()`는 요청마다 세션을 열고 요청이 끝나면 자동으로 닫아준다. 라우터에서 `Depends(async_get_db)`로 받으면 세션을 직접 열고 닫을 필요가 없다.
+    - 모든 모델이 같은 `Base`를 상속해야 `Base.metadata`에 테이블 정보가 모이고, alembic이 이것을 보고 테이블을 만든다. 모델을 `app/models/__init__.py`에 import하지 않으면 alembic이 인식하지 못한다.
+    - `expire_on_commit=False` : commit한 뒤에 객체 값을 "만료"시킬지 말지를 정하는 옵션. 비동기라서 False
 - **궁금한 점**:
+    - 삭제 표시(Soft Delete)로 바꿨으니, 조회할 때마다 `is_deleted = False` 조건을 직접 넣어야 할까? 빠뜨리지 않게 공통으로 처리하는 방법이 있을까?
 
 ### 박유정 - 1. 디렉터리별 역할
 
