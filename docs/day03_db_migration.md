@@ -138,9 +138,10 @@ DBeaver 접속 정보: `localhost` / `3306` / DB `ai_health` / 사용자 `ozcodi
 
 ### 김도엽 (@yeobbro)
 
-<!-- ![김도엽 DBeaver](images/day03_db_yeobbro.png) -->
+![김도엽 DBeaver](images/day03_db_yeobbro.png)
 
-- 적용 중 겪은 문제:
+- 적용 중 겪은 문제: 최초에는 Python 3.14 환경에서 asyncmy 빌드가 실패했고, Python 3.13 환경으로 다시 설정한 뒤에는 MySQL 서버가 실행되지 않아 localhost:3306 연결 오류가 발생했다.
+해결 방법: 프로젝트의 .env.example을 기반으로 .env를 생성하고 docker compose up -d mysql로 MySQL 컨테이너를 실행했다. 이후 uv run alembic upgrade head를 실행해 초기 마이그레이션을 성공적으로 적용했다.
 
 ### 이명석 (@fpemghs)
 
