@@ -85,6 +85,7 @@ uv run alembic upgrade head
 ## 4. DB 적용 결과 (DBeaver)
 
 `ai_health` DB에 테이블 5개와 alembic 버전 관리용 `alembic_version` 테이블이 생성되었다.
+두 번째 마이그레이션까지 적용해 모든 테이블에 삭제 표시 컬럼(`is_deleted`, `deleted_at`)이 추가된 상태다.
 
 ![DBeaver ER Diagram](images/day03_erd_dbeaver.png)
 
