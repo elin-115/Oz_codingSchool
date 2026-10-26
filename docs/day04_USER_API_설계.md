@@ -2,8 +2,8 @@
 
 ## 0. 개요
 
-4일차 사용자 요구사항 정의서(REQ-USER-001 ~ 009, NFR-USER-001 ~ 003)를 바탕으로 User API를 설계했다.
-API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 호출하는 형식에 맞췄다.
+사용자 요구사항 정의서(REQ-USER-001 ~ 009, NFR-USER-001 ~ 003)를 바탕으로 User API를 설계   
+API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 호출하는 형식에 맞춤  
 
 - Base URL: `/api/v1`
 - 인증: JWT (Access Token은 `Authorization: Bearer` 헤더, Refresh Token은 http_only 쿠키)
@@ -21,7 +21,7 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 | 6 | 내 정보 수정 | PATCH | `/api/v1/users/me` | Y | REQ-USER-007 | 박유정 |
 | 7 | 비밀번호 변경 | PATCH | `/api/v1/users/me/password` | Y | REQ-USER-008 | 이명석 |
 | 8 | 회원 탈퇴 | DELETE | `/api/v1/users/me` | Y | REQ-USER-009 | 박유정 |
-| 9 | 회원 목록 조회 | GET | `/api/v1/admin/users` | Y (어드민) | REQ-USER-004 | 이명석 |
+| 9 | 회원 목록 조회 | GET | `/api/v1/admin/users` | Y (어드민) | REQ-USER-004 | 이명석, 김지연(검색) |
 | 10 | 회원 권한 변경 | PATCH | `/api/v1/admin/users/role` | Y (어드민) | REQ-USER-005 | 이명석 |
 
 ## 1. 공통 설계
@@ -581,7 +581,7 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 | 엔드포인트 | `/api/v1/admin/users` |
 | 메서드 | `GET` |
 | 인증 필요 여부 | Y (어드민) |
-| 담당 | 이명석 |
+| 담당 | 이명석 (목록 조회), 김지연 (검색 조건 query·department) |
 
 #### 2) 요청 (Request)
 
@@ -710,7 +710,7 @@ app/
 
 | 담당 | API |
 |---|---|
-| 김지연 | 공통 뼈대(설정, 보안, 의존성, 쿠키, 응답 스키마, 라우터 등록) + 회원가입 + 토큰 재발급 |
+| 김지연 | 공통 뼈대(설정, 보안, 의존성, 쿠키, 응답 스키마, 라우터 등록) + 회원가입 + 토큰 재발급 + 회원 목록 검색 조건 |
 | 김도엽 | 로그인 + 로그아웃 |
 | 박유정 | 내 정보 조회 + 수정 + 회원 탈퇴 |
 | 이명석 | 비밀번호 변경 + 회원 목록 + 권한 변경 |
