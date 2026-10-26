@@ -16,7 +16,7 @@
 ### `docs/day04_USER_API_설계.md` - User API 설계 (과제 1)
 
 - **왜**: 과제 1. 요구사항 정의서를 바탕으로 API 명세를 작성한다.
-- **어떻게**: API 10개의 Method·Endpoint·권한·요청·응답·에러를 정리했다. 주소와 요청 형식은 프론트(`static/apis.js`)가 이미 호출하는 형식에 맞췄다. 회원 탈퇴는 Day03 결정(Soft Delete)에 따라 요구사항과 다르게 설계하고 이유를 남겼다.
+- **어떻게**: 과제에서 준 API 명세서 예시 형식(개요 → 요청 Headers·본문·쿼리 → 응답 성공·실패와 필드 표 → 비고)에 맞춰 API 10개를 정리했다. 주소와 요청 형식은 프론트(`static/apis.js`)가 이미 호출하는 형식에 맞췄다. 회원 탈퇴는 Day03 결정(Soft Delete)에 따라 요구사항과 다르게 설계하고 이유를 남겼다.
 
 ### `app/core/security.py` - 비밀번호 해싱, JWT
 
@@ -31,7 +31,7 @@
 
 - **왜**: 로그인이 필요한 API마다 토큰 검증을 반복하지 않도록 공통으로 만들었다.
 - **어떻게**
-  - `CurrentUser`: Bearer 토큰 검증 → 회원 조회. 탈퇴·비활성 회원은 401
+  - `CurrentUser`: Bearer 토큰 검증 → 회원 조회. 토큰 오류·탈퇴 회원은 401, 비활성 회원은 403 (과제 API 명세서 예시와 맞춤)
   - `StaffUser`: 대기자(`pending`)면 403
   - `AdminUser`: 어드민이 아니면 403
   - `OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")`로 Swagger의 Authorize 버튼과 연결
@@ -73,6 +73,7 @@
 | 대기자로 스태프·어드민 전용 접근 | 403 / 403 |
 | 어드민으로 변경 후 | 200 / 200 |
 | 탈퇴 표시된 회원의 토큰 | 401 |
+| 비활성(`is_active = false`) 회원의 토큰 | 403 |
 
 ## ⏭️ 남은 작업
 

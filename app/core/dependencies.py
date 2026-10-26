@@ -28,13 +28,16 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # 탈퇴했거나 없는 회원은 401, 비활성화된 회원은 403으로 구분
     user = await user_repository.get_user_by_id(db, user_id)
-    if user is None or not user.is_active:
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="존재하지 않거나 비활성화된 회원입니다.",
+            detail="존재하지 않는 회원입니다.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="비활성화된 사용자입니다.")
     return user
 
 
