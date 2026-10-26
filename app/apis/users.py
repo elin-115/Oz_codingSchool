@@ -63,3 +63,10 @@ async def refresh(request: Request, db: DBSession) -> TokenResponse:
 
 
 # ===== [이명석] 비밀번호 변경 PATCH /me/password =====
+from fastapi import Depends
+from app.core.dependencies import get_current_user
+
+@user_router.patch("/me/password", status_code=status.HTTP_200_OK)
+async def change_password(new_password: str, db: DBSession, current_user=Depends(get_current_user)) -> UserResponse:
+    user = await user_service.change_password(db, current_user, new_password)
+    return UserResponse.model_validate(user)

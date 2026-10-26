@@ -89,3 +89,15 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str | None) -> s
 
 
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
+# 비밀번호 변경
+async def change_password(db: AsyncSession, user: User, new_password: str) -> User:
+    new_hashed_password = hash_password(new_password)
+    return await user_repository.update_user_password(db, user, new_hashed_password)    
+
+# 회원 목록 조회
+async def get_user_list(db: AsyncSession) -> list[User]:
+    return await user_repository.get_user_list(db)
+
+# 권한 변경
+async def change_user_role(db: AsyncSession, user: User, new_role: str) -> User:
+    return await user_repository.update_user_role(db, user, new_role)

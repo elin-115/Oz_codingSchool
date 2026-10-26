@@ -91,3 +91,17 @@ class SignupRequest(BaseModel):
 
 
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
+# 비밀번호 변경
+class ChangePasswordRequest(BaseModel):
+    old_password: PasswordType
+    new_password: PasswordType
+
+# 회원 목록 조회
+class UserListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    users: list[UserResponse]
+
+# 권한 변경
+class ChangeUserRoleRequest(BaseModel):
+    role: UserRole
