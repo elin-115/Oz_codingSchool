@@ -489,11 +489,11 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 
 | 파라미터명 | 타입 | 필수 (Y / N) | 설명 |
 |---|---|---|---|
-| old_password | string | Y | 기존 비밀번호 |
+| current_password | string | Y | 기존 비밀번호 |
 | new_password | string | Y | 새 비밀번호 (8-20자, 대문자·특수문자 포함) |
 
 ```json
-{ "old_password": "Abcdefg1!", "new_password": "Newpass1!" }
+{ "current_password": "Abcdefg1!", "new_password": "Newpass1!" }
 ```
 
 **쿼리 파라미터**: 없음
@@ -517,7 +517,8 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 
 #### 4) 비고
 
-- `verify_password(old_password, user.hashed_password)`로 확인하고 `hash_password(new_password)`로 저장한다.
+- `verify_password(current_password, user.hashed_password)`로 확인하고 `hash_password(new_password)`로 저장한다.
+- 처음에는 `old_password`로 설계했으나, 통합 테스트에서 프론트(`static/pages.js`)가 `current_password`로 보내 422가 나는 것을 확인해 프론트에 맞춰 수정했다.
 
 ---
 

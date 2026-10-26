@@ -130,9 +130,9 @@ async def withdraw(db: AsyncSession, user: User) -> None:
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
 # 비밀번호 변경
 async def change_password(db: AsyncSession, user: User, data: ChangePasswordRequest) -> None:
-    if not verify_password(data.old_password, user.hashed_password):
+    if not verify_password(data.current_password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="기존 비밀번호가 일치하지 않습니다.")
-    if data.old_password == data.new_password:
+    if data.current_password == data.new_password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="새 비밀번호가 기존 비밀번호와 같습니다.")
     await user_repository.update_user_password(db, user, hash_password(data.new_password))
 
