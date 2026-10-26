@@ -1,7 +1,14 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import REFRESH_TOKEN_TYPE, create_access_token, decode_token, hash_password
+from app.core.security import (
+    REFRESH_TOKEN_TYPE,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    verify_password,
+)
 from app.models import User
 from app.repositories import users as user_repository
 from app.schemas.users import SignupRequest
@@ -29,7 +36,33 @@ async def signup(db: AsyncSession, data: SignupRequest) -> User:
     return await user_repository.create_user(db, user)
 
 
-# ===== [김도엽] 로그인 / 로그아웃 =====
+# ===== [김도엽] 로그인 / 로그아웃 =====\n
+async def login(
+    db: AsyncSession,
+    email: str,
+    password: str,
+) -> tuple[str, str]:
+    """이메일과 비밀번호를 검증하고 Access/Refresh Token을 발급한다."""
+    user = await user_repository.get_user_by_email(db, email)
+
+    if user is None or not verify_password(password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="이메일 또는 비밀번호가 일치하지 않습니다.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="비활성화된 사용자입니다.",
+        )
+
+    access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
+    return access_token, refresh_token
+
+
 
 
 # ===== [김지연] 토큰 재발급 =====
