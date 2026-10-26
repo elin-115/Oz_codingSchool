@@ -97,7 +97,7 @@ class UserUpdateRequest(BaseModel):
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
 # 비밀번호 변경
 class ChangePasswordRequest(BaseModel):
-    old_password: str
+    current_password: str  # 프론트(static/pages.js)가 보내는 이름에 맞춤
     new_password: PasswordType
 
 
