@@ -1,7 +1,9 @@
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Query
 
 from app.core.dependencies import AdminUser, DBSession
-from app.schemas.users import ChangeUserRoleRequest, UserResponse
+from app.schemas.users import ChangeUserRoleRequest, UserListQuery, UserResponse
 from app.services import users as user_service
 
 admin_router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
@@ -9,9 +11,12 @@ admin_router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
 # ===== [이명석] 회원 목록 조회 GET /users · 권한 변경 PATCH /users/role =====
 # 관리자만 접근 가능: app.core.dependencies의 AdminUser 사용
+# 검색 조건(query, department)은 쿼리 파라미터 모델로 받음 [김지연]
 @admin_router.get("/users")
-async def get_user_list(db: DBSession, admin: AdminUser) -> list[UserResponse]:
-    users = await user_service.get_user_list(db)
+async def get_user_list(
+    params: Annotated[UserListQuery, Query()], db: DBSession, admin: AdminUser
+) -> list[UserResponse]:
+    users = await user_service.get_user_list(db, params)
     return [UserResponse.model_validate(user) for user in users]
 
 

@@ -101,6 +101,13 @@ class ChangePasswordRequest(BaseModel):
     new_password: PasswordType
 
 
+# ===== [김지연] 회원 목록 검색 조건 =====
+# 쿼리 파라미터 모델: GET /admin/users?query=김&department=medical%20team
+class UserListQuery(BaseModel):
+    query: str | None = None  # 이메일 또는 이름에 포함된 문자열
+    department: Department | None = None
+
+
 # 권한 변경
 class ChangeUserRoleRequest(BaseModel):
     user_id: int

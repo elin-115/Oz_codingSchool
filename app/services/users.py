@@ -17,6 +17,7 @@ from app.schemas.users import (
     ChangePasswordRequest,
     ChangeUserRoleRequest,
     SignupRequest,
+    UserListQuery,
     UserUpdateRequest,
 )
 
@@ -136,9 +137,9 @@ async def change_password(db: AsyncSession, user: User, data: ChangePasswordRequ
     await user_repository.update_user_password(db, user, hash_password(data.new_password))
 
 
-# 회원 목록 조회
-async def get_user_list(db: AsyncSession) -> list[User]:
-    return await user_repository.get_user_list(db)
+# 회원 목록 조회 (검색 조건은 김지연)
+async def get_user_list(db: AsyncSession, params: UserListQuery) -> list[User]:
+    return await user_repository.get_user_list(db, params.query, params.department)
 
 
 # 권한 변경
