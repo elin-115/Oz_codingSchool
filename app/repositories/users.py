@@ -1,6 +1,7 @@
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import Department, UserRole
 from app.models import User
 
 # DB 조회·저장만 담당. 탈퇴(삭제 표시)한 회원은 조회 대상에서 제외한다.
@@ -43,9 +44,8 @@ async def save_user(db: AsyncSession, user: User) -> User:
     await db.refresh(user)
     return user
 
-# ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
-from app.core.enums import UserRole
 
+# ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
 # 비밀번호 변경
 async def update_user_password(db: AsyncSession, user: User, new_hashed_password: str) -> User:
     user.hashed_password = new_hashed_password
@@ -53,10 +53,18 @@ async def update_user_password(db: AsyncSession, user: User, new_hashed_password
     await db.refresh(user)
     return user
 
-# 회원 목록 조회
-async def get_user_list(db: AsyncSession) -> list[User]:
-    result = await db.execute(select(User).where(User.is_deleted.is_(False)))
-    return result.scalars().all()
+
+# 회원 목록 조회 (검색 조건은 김지연)
+async def get_user_list(db: AsyncSession, query: str | None, department: Department | None) -> list[User]:
+    stmt = select(User).where(User.is_deleted.is_(False))
+    # 검색 조건은 값이 있을 때만 붙인다
+    if query:
+        stmt = stmt.where(or_(User.email.contains(query), User.name.contains(query)))
+    if department:
+        stmt = stmt.where(User.department == department)
+    result = await db.execute(stmt.order_by(User.id))
+    return list(result.scalars().all())
+
 
 # 권한 변경
 async def update_user_role(db: AsyncSession, user: User, new_role: UserRole) -> User:

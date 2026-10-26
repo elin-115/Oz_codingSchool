@@ -71,7 +71,6 @@ class MessageResponse(BaseModel):
 
 
 # ===== [김지연] 회원가입 =====
-
 class SignupRequest(BaseModel):
     email: EmailType
     password: PasswordType
@@ -85,6 +84,7 @@ class SignupRequest(BaseModel):
 
 
 # ===== [김지연] 토큰 재발급 =====
+# 요청은 쿠키, 응답은 공통 TokenResponse 사용
 
 
 # ===== [박유정] 내 정보 조회 / 수정 / 탈퇴 =====
@@ -93,11 +93,20 @@ class UserUpdateRequest(BaseModel):
     department: Department | None = None
     phone_number: PhoneType | None = None
 
+
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
 # 비밀번호 변경
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: PasswordType
+
+
+# ===== [김지연] 회원 목록 검색 조건 =====
+# 쿼리 파라미터 모델: GET /admin/users?query=김&department=medical%20team
+class UserListQuery(BaseModel):
+    query: str | None = None  # 이메일 또는 이름에 포함된 문자열
+    department: Department | None = None
+
 
 # 권한 변경
 class ChangeUserRoleRequest(BaseModel):
