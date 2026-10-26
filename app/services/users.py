@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import hash_password
+from app.core.security import REFRESH_TOKEN_TYPE, create_access_token, decode_token, hash_password
 from app.models import User
 from app.repositories import users as user_repository
 from app.schemas.users import SignupRequest
@@ -33,7 +33,24 @@ async def signup(db: AsyncSession, data: SignupRequest) -> User:
 
 
 # ===== [김지연] 토큰 재발급 =====
+# 쿠키에서 꺼낸 refresh 토큰을 받아서 → 검사하고 → 새 access 토큰을 돌려주기
+async def refresh_access_token(db: AsyncSession, refresh_token: str | None) -> str:
+    # 1. 토큰을 풀어서 user_id 꺼내기 (쿠키가 없으면 refresh_token이 None)
+    user_id = decode_token(refresh_token or "", REFRESH_TOKEN_TYPE)
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="다시 로그인해주세요.")        # 401 : 토큰 문제, 회원 없음
 
+    # 2. 회원 찾기 (탈퇴한 회원은 못 찾음)
+    user = await user_repository.get_user_by_id(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="다시 로그인해주세요.")        # 401 : 토큰 문제, 회원 없음
+
+    # 3. 비활성 회원 막기
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="비활성화된 사용자입니다.")      # 403 : 비활성
+
+    # 4. 새 access 토큰 만들어서 돌려주기
+    return create_access_token(user.id)
 
 # ===== [박유정] 내 정보 조회 / 수정 / 탈퇴 =====
 

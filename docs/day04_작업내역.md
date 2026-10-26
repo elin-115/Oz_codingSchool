@@ -1,7 +1,7 @@
 # 📝 Day04 작업 내역
 
 - 날짜: 2026-10-26
-- 브랜치: `feature/user-api-base_261026`
+- 브랜치: `feature/user-api-base_261026` (PR #22), `feature/user-refresh_261026`
 - 작업자: 김지연
 
 ## 요약
@@ -76,10 +76,39 @@
 | 탈퇴 표시된 회원의 토큰 | 401 |
 | 비활성(`is_active = false`) 회원의 토큰 | 403 |
 
+## 🔄 토큰 재발급 API (김지연)
+
+### `app/services/users.py` - `refresh_access_token`
+
+- **왜**: Access Token(30분)이 만료되면 사용자가 다시 로그인하지 않고도 계속 쓸 수 있어야 한다(NFR-USER-001).
+- **어떻게**
+  1. 쿠키의 Refresh Token을 `decode_token(..., REFRESH_TOKEN_TYPE)`으로 검증. 없음·만료·위조·종류 불일치면 401
+  2. `get_user_by_id`로 회원 조회. 탈퇴 회원은 조회되지 않아 401
+  3. 비활성 회원이면 403
+  4. `create_access_token`으로 새 Access Token 발급
+
+### `app/apis/users.py` - `POST /api/v1/users/refresh`
+
+- `request.cookies.get(REFRESH_COOKIE_NAME)`으로 쿠키를 읽어 service에 넘기고 `TokenResponse`로 응답한다.
+
+### 작성하면서 배운 것
+
+- `status.HTTP_401_CONFLICT`처럼 **숫자와 이름이 짝이 안 맞는 상태 코드**는 존재하지 않아 `AttributeError`가 난다. 정상 요청에서는 그 줄까지 가지 않아 에러가 안 보이고, **실패하는 경우를 테스트해야** 드러난다.
+- 상태 코드 짝: 401 `UNAUTHORIZED`(누군지 모름), 403 `FORBIDDEN`(누군지는 알지만 안 됨), 409 `CONFLICT`(중복)
+
+### 확인한 것
+
+| 테스트 | 결과 |
+|---|---|
+| 정상 쿠키 | 200, 새 Access Token (`expires_in` 1800) |
+| 쿠키 없음 / 위조 쿠키 | 401 / 401 |
+| Access Token을 쿠키에 넣음 | 401 (토큰 종류 구분) |
+| 비활성 회원 / 탈퇴 회원 | 403 / 401 |
+
 ## ⏭️ 남은 작업
 
-- [ ] 뼈대 PR 리뷰·merge 후 팀원 `uv sync`, `.env`에 `SECRET_KEY` 추가 공지
-- [ ] 김지연: 토큰 재발급
+- [x] 뼈대 PR 리뷰·merge 후 팀원 `uv sync`, `.env`에 `SECRET_KEY` 추가 공지
+- [x] 김지연: 토큰 재발급
 - [ ] 김도엽: 로그인, 로그아웃
 - [ ] 박유정: 내 정보 조회, 수정, 탈퇴
 - [ ] 이명석: 비밀번호 변경, 회원 목록, 권한 변경
