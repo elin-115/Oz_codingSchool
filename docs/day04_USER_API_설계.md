@@ -16,7 +16,7 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 | 1 | 회원가입 | POST | `/api/v1/users/signup` | N | REQ-USER-001 | 김지연 |
 | 2 | 로그인 | POST | `/api/v1/users/login` | N | REQ-USER-002, NFR-USER-001 | 김도엽 |
 | 3 | 토큰 재발급 | POST | `/api/v1/users/refresh` | 쿠키 | NFR-USER-001 | 김지연 |
-| 4 | 로그아웃 | POST | `/api/v1/users/logout` | Y | REQ-USER-003 | 김도엽 |
+| 4 | 로그아웃 | POST | `/api/v1/users/logout` | N | REQ-USER-003 | 김도엽 |
 | 5 | 내 정보 조회 | GET | `/api/v1/users/me` | Y | REQ-USER-006 | 박유정 |
 | 6 | 내 정보 수정 | PATCH | `/api/v1/users/me` | Y | REQ-USER-007 | 박유정 |
 | 7 | 비밀번호 변경 | PATCH | `/api/v1/users/me/password` | Y | REQ-USER-008 | 이명석 |
@@ -327,16 +327,12 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 | 설명 | 로그인한 사용자가 로그아웃한다. (REQ-USER-003) |
 | 엔드포인트 | `/api/v1/users/logout` |
 | 메서드 | `POST` |
-| 인증 필요 여부 | Y |
+| 인증 필요 여부 | N (Refresh Token 쿠키만 삭제) |
 | 담당 | 김도엽 |
 
 #### 2) 요청 (Request)
 
-**Headers**
-
-| Key | Value | 설명 |
-|---|---|---|
-| Authorization | Bearer `<access_token>` | 로그인 사용자 확인 |
+**Headers**: 없음 (브라우저가 `refresh_token` 쿠키를 자동으로 보냄)
 
 **본문 필드**: 없음
 **쿼리 파라미터**: 없음
@@ -355,15 +351,12 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 |---|---|---|
 | Set-Cookie | `refresh_token=""; Max-Age=0; Path=/api/v1/users` | 리프레시 토큰 쿠키 삭제 (`delete_refresh_cookie`) |
 
-**실패**
-
-| 상태 코드 | 응답 | 상황 |
-|---|---|---|
-| 401 | `{"detail": "유효하지 않거나 만료된 토큰입니다."}` | 토큰 없음·만료 |
+**실패**: 없음 (토큰이 없거나 만료돼도 항상 200)
 
 #### 4) 비고
 
 - Access Token은 서버에 저장하지 않으므로 프론트가 지운다. 로그아웃 후 로그인 페이지로 이동한다.
+- 처음에는 인증이 필요하도록(Y) 설계했으나, 통합 테스트에서 회원 탈퇴 직후 프론트가 로그아웃을 호출하면 401 → 토큰 재발급 실패 → 다시 로그아웃이 반복되는 문제를 발견했다. 로그아웃은 내 브라우저의 쿠키만 지우는 동작이라 인증 없이도 안전하므로 인증을 빼도록 수정했다.
 
 ---
 
