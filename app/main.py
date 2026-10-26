@@ -5,7 +5,9 @@ from fastapi import FastAPI
 from starlette.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
+from app.apis.admin import admin_router
 from app.apis.practice_apis import practice_router
+from app.apis.users import user_router
 
 app = FastAPI(
     title="폐렴 환자 관리 백오피스",
@@ -27,8 +29,10 @@ app = FastAPI(
     },
 )
 
-# 실습 API 라우터 등록 (아래 catch_all 라우트보다 먼저 등록해야 함)
+# API 라우터 등록 (아래 catch_all 라우트보다 먼저 등록해야 함)
 app.include_router(practice_router)
+app.include_router(user_router)
+app.include_router(admin_router)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
