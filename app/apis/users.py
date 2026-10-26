@@ -77,3 +77,9 @@ async def withdraw(response: Response, user: CurrentUser, db: DBSession) -> None
     delete_refresh_cookie(response)
 
 # ===== [이명석] 비밀번호 변경 PATCH /me/password =====
+from app.schemas.users import ChangePasswordRequest
+
+@user_router.patch("/me/password")
+async def change_password(data: ChangePasswordRequest, user: CurrentUser, db: DBSession) -> MessageResponse:
+    await user_service.change_password(db, user, data)
+    return MessageResponse(message="비밀번호가 변경되었습니다.")

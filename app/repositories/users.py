@@ -44,3 +44,23 @@ async def save_user(db: AsyncSession, user: User) -> User:
     return user
 
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
+from app.core.enums import UserRole
+
+# 비밀번호 변경
+async def update_user_password(db: AsyncSession, user: User, new_hashed_password: str) -> User:
+    user.hashed_password = new_hashed_password
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+# 회원 목록 조회
+async def get_user_list(db: AsyncSession) -> list[User]:
+    result = await db.execute(select(User).where(User.is_deleted.is_(False)))
+    return result.scalars().all()
+
+# 권한 변경
+async def update_user_role(db: AsyncSession, user: User, new_role: UserRole) -> User:
+    user.role = new_role
+    await db.commit()
+    await db.refresh(user)
+    return user
