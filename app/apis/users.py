@@ -42,10 +42,8 @@ async def login(
 
 
 @user_router.post("/logout", response_model=MessageResponse)
-async def logout(
-    response: Response,
-    current_user: CurrentUser,
-) -> MessageResponse:
+async def logout(response: Response) -> MessageResponse:
+    # 토큰이 만료됐거나 탈퇴한 직후에도 로그아웃(쿠키 삭제)은 항상 성공해야 하므로 로그인 확인을 하지 않음
     delete_refresh_cookie(response)
     return MessageResponse(message="로그아웃되었습니다.")
 
