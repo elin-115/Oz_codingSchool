@@ -88,7 +88,7 @@ class SignupRequest(BaseModel):
 
 
 # ===== [박유정] 내 정보 조회 / 수정 / 탈퇴 =====
-class UserUpdateRequest (BaseModel):
+class UserUpdateRequest(BaseModel):
     # 부서와 휴대폰 번호만 수정 가능
     department: Department | None = None
     phone_number: PhoneType | None = None
