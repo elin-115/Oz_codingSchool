@@ -36,7 +36,7 @@ async def signup(db: AsyncSession, data: SignupRequest) -> User:
     return await user_repository.create_user(db, user)
 
 
-# ===== [김도엽] 로그인 / 로그아웃 =====\n
+# ===== [김도엽] 로그인 / 로그아웃 =====
 async def login(
     db: AsyncSession,
     email: str,
