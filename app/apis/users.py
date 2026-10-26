@@ -8,6 +8,7 @@ from app.core.security import (
     set_refresh_cookie,
 )
 from app.schemas.users import (
+    ChangePasswordRequest,
     MessageResponse,
     SignupRequest,
     TokenResponse,
@@ -49,7 +50,6 @@ async def logout(
     return MessageResponse(message="로그아웃되었습니다.")
 
 
-
 # 쿠키는 app.core.security의 set_refresh_cookie / delete_refresh_cookie 사용
 
 
@@ -60,15 +60,18 @@ async def refresh(request: Request, db: DBSession) -> TokenResponse:
     access_token = await user_service.refresh_access_token(db, refresh_token)
     return TokenResponse(access_token=access_token)
 
+
 # ===== [박유정] 내 정보 조회 GET /me · 수정 PATCH /me · 탈퇴 DELETE /me =====
 @user_router.get("/me", status_code=status.HTTP_200_OK)
 async def get_me(user: CurrentUser) -> UserResponse:
     return UserResponse.model_validate(user)
 
+
 @user_router.patch("/me", status_code=status.HTTP_200_OK)
 async def update_me(data: UserUpdateRequest, user: CurrentUser, db: DBSession) -> UserResponse:
     updated_user = await user_service.update_me(db, user, data)
     return UserResponse.model_validate(updated_user)
+
 
 @user_router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def withdraw(response: Response, user: CurrentUser, db: DBSession) -> None:
@@ -76,9 +79,8 @@ async def withdraw(response: Response, user: CurrentUser, db: DBSession) -> None
     # 탈퇴 시 Refresh Token 쿠키 삭제
     delete_refresh_cookie(response)
 
-# ===== [이명석] 비밀번호 변경 PATCH /me/password =====
-from app.schemas.users import ChangePasswordRequest
 
+# ===== [이명석] 비밀번호 변경 PATCH /me/password =====
 @user_router.patch("/me/password")
 async def change_password(data: ChangePasswordRequest, user: CurrentUser, db: DBSession) -> MessageResponse:
     await user_service.change_password(db, user, data)

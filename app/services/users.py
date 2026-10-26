@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.users import ChangePasswordRequest, ChangeUserRoleRequest
 
 from app.core.security import (
     REFRESH_TOKEN_TYPE,
@@ -13,13 +13,17 @@ from app.core.security import (
 )
 from app.models import User
 from app.repositories import users as user_repository
-from app.schemas.users import SignupRequest, UserUpdateRequest
+from app.schemas.users import (
+    ChangePasswordRequest,
+    ChangeUserRoleRequest,
+    SignupRequest,
+    UserUpdateRequest,
+)
 
 # 비즈니스 규칙(중복 확인, 해싱, 권한 등)을 담당하고 DB 작업은 repository에 맡긴다.
 
 
 # ===== [김지연] 회원가입 =====
-
 async def signup(db: AsyncSession, data: SignupRequest) -> User:
     if await user_repository.exists_email(db, data.email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 사용 중인 이메일입니다.")
@@ -65,8 +69,6 @@ async def login(
     return access_token, refresh_token
 
 
-
-
 # ===== [김지연] 토큰 재발급 =====
 # 쿠키에서 꺼낸 refresh 토큰을 받아서 → 검사하고 → 새 access 토큰을 돌려주기
 async def refresh_access_token(db: AsyncSession, refresh_token: str | None) -> str:
@@ -86,6 +88,7 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str | None) -> s
 
     # 4. 새 access 토큰 만들어서 돌려주기
     return create_access_token(user.id)
+
 
 # ===== [박유정] 내 정보 조회 / 수정 / 탈퇴 =====
 async def update_me(db: AsyncSession, user: User, data: UserUpdateRequest) -> User:
@@ -108,6 +111,7 @@ async def update_me(db: AsyncSession, user: User, data: UserUpdateRequest) -> Us
         setattr(user, field, value)
     return await user_repository.save_user(db, user)
 
+
 async def withdraw(db: AsyncSession, user: User) -> None:
     # 즉시 삭제 대신 삭제 표시 + 개인 정보 삭제
     user.is_deleted = True
@@ -120,8 +124,10 @@ async def withdraw(db: AsyncSession, user: User) -> None:
     user.name = "탈퇴회원"
     user.hashed_password = ""
     await user_repository.save_user(db, user)
-    
+
+
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
+# 비밀번호 변경
 async def change_password(db: AsyncSession, user: User, data: ChangePasswordRequest) -> None:
     if not verify_password(data.old_password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="기존 비밀번호가 일치하지 않습니다.")
