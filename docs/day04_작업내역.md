@@ -75,7 +75,7 @@
 | `pyproject.toml`, `uv.lock` | `uv add "pwdlib[argon2]" pyjwt`, dev 의존성 `pytest`. **팀원 전원 `uv sync` 필요** |
 | `README.md` | 문서 표를 📚 과제 문서 / 📝 작업 내역으로 나누고 날짜 칸 추가 |
 
-## 💬 분담 변경
+## 💬 공통 설계 결정
 
 - 세 API가 같은 쿠키를 다루므로 쿠키 함수와 `TokenResponse`를 뼈대에 공통으로 넣었다.
 - 과제 명세서 예시에 맞춰 `TokenResponse`에 `expires_in`(1800초)을 추가했다. 예시의 `user` 정보는 프론트가 `/users/me`로 따로 받아오므로 넣지 않았다.
