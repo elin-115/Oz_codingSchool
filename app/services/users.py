@@ -90,14 +90,23 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str | None) -> s
 
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
 # 비밀번호 변경
-async def change_password(db: AsyncSession, user: User, new_password: str) -> User:
-    new_hashed_password = hash_password(new_password)
-    return await user_repository.update_user_password(db, user, new_hashed_password)    
+async def change_password(db: AsyncSession, user: User, data: ChangePasswordRequest) -> None:
+    if not verify_password(data.old_password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="기존 비밀번호가 일치하지 않습니다.")
+    if data.old_password == data.new_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="새 비밀번호가 기존 비밀번호와 같습니다.")
+    await user_repository.update_user_password(db, user, hash_password(data.new_password))
+
 
 # 회원 목록 조회
 async def get_user_list(db: AsyncSession) -> list[User]:
     return await user_repository.get_user_list(db)
 
+
 # 권한 변경
-async def change_user_role(db: AsyncSession, user: User, new_role: str) -> User:
-    return await user_repository.update_user_role(db, user, new_role)
+async def change_user_role(db: AsyncSession, admin: User, data: ChangeUserRoleRequest) -> User:
+    if data.user_id == admin.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="본인의 권한은 변경할 수 없습니다.")
+    user = await user_repository.get_user_by_id(db, data.user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="해당 회원을 찾을 수 없습니다.")
