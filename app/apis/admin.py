@@ -12,8 +12,6 @@ from app.services import users as user_service
 from fastapi import status
 
 # 회원 목록 조회
-# 모든 회원 조회
-# 목록 조회 시 검색 기능을 활용하여 이메일 혹은 이름으로 검색을 할 수 있다.
 @admin_router.get("/users", status_code=status.HTTP_200_OK)
 async def get_user_list(db: DBSession, current_user=Depends(AdminUser)) -> list[UserResponse]:
     users = await user_service.get_user_list(db)
