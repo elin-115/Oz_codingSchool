@@ -38,6 +38,9 @@ async def create_user(db: AsyncSession, user: User) -> User:
 
 
 # ===== [박유정] 내 정보 조회 / 수정 / 탈퇴 =====
-
+async def save_user(db: AsyncSession, user: User) -> User:
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
