@@ -94,3 +94,12 @@ class UserUpdateRequest(BaseModel):
     phone_number: PhoneType | None = None
 
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
+# 비밀번호 변경
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: PasswordType
+
+# 권한 변경
+class ChangeUserRoleRequest(BaseModel):
+    user_id: int
+    new_role: UserRole
