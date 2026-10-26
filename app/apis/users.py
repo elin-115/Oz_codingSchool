@@ -12,6 +12,7 @@ from app.schemas.users import (
     SignupRequest,
     TokenResponse,
     UserResponse,
+    UserUpdateRequest,
 )
 from app.services import users as user_service
 
@@ -60,6 +61,19 @@ async def refresh(request: Request, db: DBSession) -> TokenResponse:
     return TokenResponse(access_token=access_token)
 
 # ===== [박유정] 내 정보 조회 GET /me · 수정 PATCH /me · 탈퇴 DELETE /me =====
+@user_router.get("/me", status_code=status.HTTP_200_OK)
+async def get_me(user: CurrentUser) -> UserResponse:
+    return UserResponse.model_validate(user)
 
+@user_router.patch("/me", status_code=status.HTTP_200_OK)
+async def update_me(data: UserUpdateRequest, user: CurrentUser, db: DBSession) -> UserResponse:
+    updated_user = await user_service.update_me(db, user, data)
+    return UserResponse.model_validate(updated_user)
+
+@user_router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def withdraw(response: Response, user: CurrentUser, db: DBSession) -> None:
+    await user_service.withdraw(db, user)
+    # 탈퇴 시 Refresh Token 쿠키 삭제
+    delete_refresh_cookie(response)
 
 # ===== [이명석] 비밀번호 변경 PATCH /me/password =====

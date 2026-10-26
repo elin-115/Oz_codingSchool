@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +12,7 @@ from app.core.security import (
 )
 from app.models import User
 from app.repositories import users as user_repository
-from app.schemas.users import SignupRequest
+from app.schemas.users import SignupRequest, UserUpdateRequest
 
 # 비즈니스 규칙(중복 확인, 해싱, 권한 등)을 담당하고 DB 작업은 repository에 맡긴다.
 
@@ -86,6 +87,37 @@ async def refresh_access_token(db: AsyncSession, refresh_token: str | None) -> s
     return create_access_token(user.id)
 
 # ===== [박유정] 내 정보 조회 / 수정 / 탈퇴 =====
+async def update_me(db: AsyncSession, user: User, data: UserUpdateRequest) -> User:
+    # 보낸 항목 꺼내기
+    update_data = data.model_dump(exclude_none=True)
+    if not update_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="수정할 항목을 하나 이상 입력해 주세요."
+        )
+    # 휴대폰 번호 변경 시 중복 확인(변경 없을 때는 통과)
+    new_phone = update_data.get("phone_number")
+    if new_phone and new_phone != user.phone_number:
+        if await user_repository.exists_phone_number(db, new_phone):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="이미 사용 중인 휴대폰 번호입니다."
+            )
+    for field, value in update_data.items():
+        setattr(user, field, value)
+    return await user_repository.save_user(db, user)
 
+async def withdraw(db: AsyncSession, user: User) -> None:
+    # 즉시 삭제 대신 삭제 표시 + 개인 정보 삭제
+    user.is_deleted = True
+    user.deleted_at = datetime.now(UTC)
+    user.is_active = False
 
+    # 이메일・휴대폰 번호 고유 정보 처리(동일 정보로 재가입 가능)
+    user.email = f"deleted_{user.id}@deleted.local"
+    user.phone_number = f"deleted_{user.id}"
+    user.name = "탈퇴회원"
+    user.hashed_password = ""
+    await user_repository.save_user(db, user)
+    
 # ===== [이명석] 비밀번호 변경 / 회원 목록 / 권한 변경 =====
