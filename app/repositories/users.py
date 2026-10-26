@@ -34,7 +34,7 @@ async def create_user(db: AsyncSession, user: User) -> User:
     return user
 
 
-# ===== [김도엽] 로그인 / 토큰 재발급 / 로그아웃 =====
+# ===== [김도엽] 로그인 / 로그아웃 =====
 
 
 # ===== [박유정] 내 정보 조회 / 수정 / 탈퇴 =====

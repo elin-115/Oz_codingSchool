@@ -15,7 +15,11 @@ async def signup(data: SignupRequest, db: DBSession) -> UserResponse:
     return UserResponse.model_validate(user)
 
 
-# ===== [김도엽] 로그인 POST /login · 토큰 재발급 POST /refresh · 로그아웃 POST /logout =====
+# ===== [김도엽] 로그인 POST /login · 로그아웃 POST /logout =====
+# 쿠키는 app.core.security의 set_refresh_cookie / delete_refresh_cookie 사용
+
+
+# ===== [김지연] 토큰 재발급 POST /refresh =====
 
 
 # ===== [박유정] 내 정보 조회 GET /me · 수정 PATCH /me · 탈퇴 DELETE /me =====

@@ -29,7 +29,10 @@ async def signup(db: AsyncSession, data: SignupRequest) -> User:
     return await user_repository.create_user(db, user)
 
 
-# ===== [김도엽] 로그인 / 토큰 재발급 / 로그아웃 =====
+# ===== [김도엽] 로그인 / 로그아웃 =====
+
+
+# ===== [김지연] 토큰 재발급 =====
 
 
 # ===== [박유정] 내 정보 조회 / 수정 / 탈퇴 =====

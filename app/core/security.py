@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
+from fastapi import Response
 from pwdlib import PasswordHash
 
 from app.core.config import settings
@@ -51,3 +52,27 @@ def decode_token(token: str, token_type: str) -> int | None:
     if payload.get("type") != token_type:
         return None
     return int(payload["sub"])
+
+
+# ===== Refresh Token 쿠키 =====
+# 로그인(심기), 토큰 재발급(읽기), 로그아웃·탈퇴(지우기)가 같은 이름과 path를 써야
+# 브라우저가 쿠키를 보내고 지워주므로, 설정을 이곳 한 군데에서만 관리한다.
+
+REFRESH_COOKIE_NAME = "refresh_token"
+REFRESH_COOKIE_PATH = "/api/v1/users"
+
+
+def set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    response.set_cookie(
+        key=REFRESH_COOKIE_NAME,
+        value=refresh_token,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        path=REFRESH_COOKIE_PATH,
+        httponly=True,  # JavaScript에서 읽을 수 없도록
+        samesite="lax",
+        secure=False,  # 로컬(http) 개발용. https로 배포할 때 True로 변경
+    )
+
+
+def delete_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(key=REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)

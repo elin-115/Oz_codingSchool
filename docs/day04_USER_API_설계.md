@@ -15,7 +15,7 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 |---|---|---|---|---|---|---|
 | 1 | 회원가입 | POST | `/users/signup` | 누구나 | REQ-USER-001 | 김지연 |
 | 2 | 로그인 | POST | `/users/login` | 누구나 | REQ-USER-002, NFR-USER-001 | 김도엽 |
-| 3 | 토큰 재발급 | POST | `/users/refresh` | 쿠키 | NFR-USER-001 | 김도엽 |
+| 3 | 토큰 재발급 | POST | `/users/refresh` | 쿠키 | NFR-USER-001 | 김지연 |
 | 4 | 로그아웃 | POST | `/users/logout` | 로그인 | REQ-USER-003 | 김도엽 |
 | 5 | 내 정보 조회 | GET | `/users/me` | 로그인 | REQ-USER-006 | 박유정 |
 | 6 | 내 정보 수정 | PATCH | `/users/me` | 로그인 | REQ-USER-007 | 박유정 |
@@ -52,6 +52,25 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 | `CurrentUser` | 로그인한 회원 (토큰 검증 + 탈퇴·비활성 회원 제외) | 401 |
 | `StaffUser` | 스태프 이상 (대기자 제외) | 403 |
 | `AdminUser` | 어드민만 | 403 |
+
+### Refresh Token 쿠키 (`app/core/security.py`)
+
+로그인(심기), 토큰 재발급(읽기), 로그아웃·탈퇴(지우기)를 서로 다른 사람이 작성하므로, 쿠키 설정을 공통 함수로 한 곳에서 관리한다.
+브라우저는 쿠키를 심을 때와 지울 때 이름과 `path`가 같아야 지워주기 때문이다.
+
+| 이름 | 용도 | 사용하는 API |
+|---|---|---|
+| `REFRESH_COOKIE_NAME` | 쿠키 이름 `refresh_token` | 토큰 재발급 (`request.cookies.get(...)`) |
+| `set_refresh_cookie(response, token)` | http_only 쿠키 심기 (7일, `path=/api/v1/users`) | 로그인 |
+| `delete_refresh_cookie(response)` | 쿠키 지우기 | 로그아웃, 회원 탈퇴 |
+
+### 공통 응답 스키마 (`app/schemas/users.py`)
+
+| 이름 | 필드 | 사용하는 API |
+|---|---|---|
+| `UserResponse` | id, email, name, department, gender, phone_number, role, is_active | 회원가입, 내 정보, 회원 목록, 권한 변경 |
+| `TokenResponse` | access_token, token_type | 로그인, 토큰 재발급 |
+| `MessageResponse` | message | 로그아웃, 비밀번호 변경 |
 
 ### 공통 에러
 
@@ -243,7 +262,15 @@ app/
     └── admin.py           # /api/v1/admin
 ```
 
-- 김지연이 공통 코드(설정, 보안, 의존성, 응답 스키마, 라우터 등록)와 회원가입을 먼저 작성해 merge한다.
+| 담당 | API |
+|---|---|
+| 김지연 | 공통 뼈대(설정, 보안, 의존성, 쿠키, 응답 스키마, 라우터 등록) + 회원가입 + 토큰 재발급 |
+| 김도엽 | 로그인 + 로그아웃 |
+| 박유정 | 내 정보 조회 + 수정 + 회원 탈퇴 |
+| 이명석 | 비밀번호 변경 + 회원 목록 + 권한 변경 |
+
+- 김지연이 공통 뼈대와 회원가입을 먼저 merge한다. 토큰 재발급은 뼈대 merge 후 다른 팀원과 같은 방식으로 PR을 올린다.
+- 로그인·토큰 재발급·로그아웃은 같은 쿠키를 다루므로 반드시 공통 쿠키 함수를 쓴다.
 - 팀원은 각 파일의 `# ===== [이름] ... =====` 주석 아래에만 작성해 충돌을 줄인다.
 - 작성 순서: **schemas → repositories → services → apis** (Day03 뜯어보기 5번)
 

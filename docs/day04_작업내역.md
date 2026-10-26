@@ -25,6 +25,7 @@
   - `pwdlib`의 Argon2로 `hash_password`, `verify_password`
   - `pyjwt`로 Access(30분)·Refresh(7일) 토큰 발급. 페이로드는 `sub`(user_id), `type`, `exp`
   - `decode_token`은 서명 오류·만료·종류 불일치를 모두 `None`으로 돌려준다
+  - Refresh Token 쿠키 공통 함수 `set_refresh_cookie`, `delete_refresh_cookie`. 로그인·재발급·로그아웃 담당이 달라도 쿠키 이름과 `path`가 어긋나지 않도록 한 곳에서 관리
 
 ### `app/core/dependencies.py` - 인증·권한 의존성
 
@@ -39,7 +40,7 @@
 
 - **왜**: Day03에 정리한 계층 구조(apis → services → repositories → models)를 실제로 적용한다.
 - **어떻게**
-  - 공통 검증 타입(이메일, 비밀번호, 이름, 휴대폰 번호)과 응답 스키마 `UserResponse`
+  - 공통 검증 타입(이메일, 비밀번호, 이름, 휴대폰 번호)과 공통 응답 스키마 `UserResponse`, `TokenResponse`(로그인·재발급 공용), `MessageResponse`
   - repository는 탈퇴 회원을 조회에서 제외. 단, 중복 확인은 탈퇴 회원까지 포함 (unique 제약이 걸려 있으므로)
   - **회원가입** 구현: 이메일·휴대폰 번호 중복 409, 비밀번호 Argon2 해싱, 권한 기본값 `pending`
   - 팀원 담당 위치를 `# ===== [이름] ... =====` 주석으로 나눠둠
@@ -53,6 +54,11 @@
 | `app/main.py` | `user_router`, `admin_router` 등록 (`catch_all`보다 위) |
 | `pyproject.toml`, `uv.lock` | `uv add "pwdlib[argon2]" pyjwt`. **팀원 전원 `uv sync` 필요** |
 | `README.md` | 문서 표에 Day04 추가 |
+
+## 💬 분담 변경
+
+- 처음에는 김도엽이 로그인·토큰 재발급·로그아웃 3개를 맡았지만, 쿠키와 토큰을 함께 다뤄 부담이 커서 **토큰 재발급을 김지연이 가져왔다.**
+- 세 API가 같은 쿠키를 다루므로 쿠키 함수와 `TokenResponse`를 뼈대에 공통으로 넣었다.
 
 ## ✅ 확인한 것 (Docker MySQL)
 
@@ -71,7 +77,8 @@
 ## ⏭️ 남은 작업
 
 - [ ] 뼈대 PR 리뷰·merge 후 팀원 `uv sync`, `.env`에 `SECRET_KEY` 추가 공지
-- [ ] 김도엽: 로그인, 토큰 재발급, 로그아웃
+- [ ] 김지연: 토큰 재발급
+- [ ] 김도엽: 로그인, 로그아웃
 - [ ] 박유정: 내 정보 조회, 수정, 탈퇴
 - [ ] 이명석: 비밀번호 변경, 회원 목록, 권한 변경
 - [ ] Swagger 통합 테스트 → develop → main

@@ -56,6 +56,17 @@ class UserResponse(BaseModel):
     is_active: bool
 
 
+class TokenResponse(BaseModel):
+    # 로그인(김도엽)과 토큰 재발급(김지연)이 함께 사용
+    access_token: str
+    token_type: str = "bearer"
+
+
+class MessageResponse(BaseModel):
+    # 로그아웃, 비밀번호 변경처럼 안내 문구만 돌려줄 때 사용
+    message: str
+
+
 # ===== [김지연] 회원가입 =====
 
 class SignupRequest(BaseModel):
@@ -67,7 +78,10 @@ class SignupRequest(BaseModel):
     phone_number: PhoneType
 
 
-# ===== [김도엽] 로그인 / 토큰 재발급 / 로그아웃 =====
+# ===== [김도엽] 로그인 / 로그아웃 =====
+
+
+# ===== [김지연] 토큰 재발급 =====
 
 
 # ===== [박유정] 내 정보 조회 / 수정 / 탈퇴 =====
