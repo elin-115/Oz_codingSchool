@@ -53,7 +53,7 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 | `AdminUser` | `app/core/dependencies.py` | 어드민이 아니면 403 |
 | `set_refresh_cookie` / `delete_refresh_cookie` | `app/core/security.py` | Refresh Token 쿠키 심기 / 지우기 (이름·path를 한 곳에서 관리) |
 | `UserResponse` | `app/schemas/users.py` | 회원 정보 응답 |
-| `TokenResponse` | `app/schemas/users.py` | 로그인·토큰 재발급 응답 |
+| `TokenResponse` | `app/schemas/users.py` | 로그인·토큰 재발급 응답 (`access_token`, `token_type`, `expires_in`) |
 | `MessageResponse` | `app/schemas/users.py` | 안내 문구 응답 |
 
 ### 1-4. 공통 요청 Headers
@@ -240,7 +240,8 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
-  "token_type": "bearer"
+  "token_type": "bearer",
+  "expires_in": 1800
 }
 ```
 
@@ -248,6 +249,7 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 |---|---|---|
 | access_token | string | 30분 동안 유효한 JWT 액세스 토큰 |
 | token_type | string | 토큰 인증 방식, `bearer` |
+| expires_in | integer | 액세스 토큰 만료 시간, 1800초 |
 
 **응답 Headers**
 
@@ -267,6 +269,8 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 
 - 이메일과 비밀번호 중 어느 쪽이 틀렸는지 알려주지 않는다. (계정 존재 여부 노출 방지)
 - 대기자(`pending`)도 로그인할 수 있다. 마이페이지를 써야 하기 때문이다.
+- 예시 명세서의 `user` 정보는 응답에 넣지 않는다. 프론트(`static/app.js`)가 로그인 직후 `/users/me`로 회원 정보를 따로 받아오기 때문에, 넣으면 같은 정보를 두 API에서 관리하게 된다.
+- `expires_in`은 `TokenResponse`가 설정값(`ACCESS_TOKEN_EXPIRE_MINUTES`)으로 자동 계산하므로 직접 넣지 않아도 된다.
 - 로컬은 http라 `Secure`를 빼고, https로 배포할 때 `secure=True`로 바꾼다.
 
 ---

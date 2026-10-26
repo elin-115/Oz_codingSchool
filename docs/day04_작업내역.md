@@ -40,7 +40,7 @@
 
 - **왜**: Day03에 정리한 계층 구조(apis → services → repositories → models)를 실제로 적용한다.
 - **어떻게**
-  - 공통 검증 타입(이메일, 비밀번호, 이름, 휴대폰 번호)과 공통 응답 스키마 `UserResponse`, `TokenResponse`(로그인·재발급 공용), `MessageResponse`
+  - 공통 검증 타입(이메일, 비밀번호, 이름, 휴대폰 번호)과 공통 응답 스키마 `UserResponse`, `TokenResponse`(로그인·재발급 공용, `access_token`·`token_type`·`expires_in`), `MessageResponse`
   - repository는 탈퇴 회원을 조회에서 제외. 단, 중복 확인은 탈퇴 회원까지 포함 (unique 제약이 걸려 있으므로)
   - **회원가입** 구현: 이메일·휴대폰 번호 중복 409, 비밀번호 Argon2 해싱, 권한 기본값 `pending`
   - 팀원 담당 위치를 `# ===== [이름] ... =====` 주석으로 나눠둠
@@ -59,6 +59,7 @@
 
 - 처음에는 김도엽이 로그인·토큰 재발급·로그아웃 3개를 맡았지만, 쿠키와 토큰을 함께 다뤄 부담이 커서 **토큰 재발급을 김지연이 가져왔다.**
 - 세 API가 같은 쿠키를 다루므로 쿠키 함수와 `TokenResponse`를 뼈대에 공통으로 넣었다.
+- 과제 명세서 예시에 맞춰 `TokenResponse`에 `expires_in`(1800초)을 추가했다. 예시의 `user` 정보는 프론트가 `/users/me`로 따로 받아오므로 넣지 않았다.
 
 ## ✅ 확인한 것 (Docker MySQL)
 

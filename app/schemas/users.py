@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
+from app.core.config import settings
 from app.core.enums import Department, Gender, UserRole
 
 # ===== 공통 검증 =====
@@ -60,6 +61,8 @@ class TokenResponse(BaseModel):
     # 로그인(김도엽)과 토큰 재발급(김지연)이 함께 사용
     access_token: str
     token_type: str = "bearer"
+    # Access Token 만료까지 남은 시간(초). 설정값에서 계산하므로 직접 넣지 않아도 됨
+    expires_in: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
 
 class MessageResponse(BaseModel):
