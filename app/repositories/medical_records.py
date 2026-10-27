@@ -23,7 +23,6 @@ async def create_medical_record(db: AsyncSession, record: MedicalRecord) -> Medi
 
 # ===== [박유정] 환자별 진료기록 목록 / 진료기록 상세 =====
 # 상세는 X-Ray 이미지를 함께 불러온다: .options(selectinload(MedicalRecord.xray_images))
-
 async def get_records_by_patient_id(db: AsyncSession, patient_id: int) -> list[MedicalRecord]:
     # 한 환자 진료기록 목록 (삭제 표시 제외, 최신순)
     result = await db.execute(

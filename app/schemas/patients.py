@@ -1,18 +1,32 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from app.core.enums import Gender
 from app.schemas.users import PhoneType
 
 # ===== 공통 검증 =====
 
-PatientNameType = Annotated[str, Field(min_length=2, max_length=30)]  # DB String(30)
-AgeType = Annotated[int, Field(ge=0, le=150)]
+# Field(min_length=..)의 기본 오류는 영어라, 프론트 알림에 한글이 보이도록 직접 검사 (users의 validate_phone과 같은 방식)
+def validate_patient_name(value: str) -> str:
+    if not 2 <= len(value) <= 30:  # DB String(30)
+        raise ValueError("이름은 2자 이상 30자 이하여야 합니다.")
+    return value
+
+
+def validate_age(value: int) -> int:
+    if not 0 <= value <= 150:
+        raise ValueError("나이는 0세 이상 150세 이하여야 합니다.")
+    return value
+
+
+PatientNameType = Annotated[str, AfterValidator(validate_patient_name)]
+AgeType = Annotated[int, AfterValidator(validate_age)]
 
 
 # ===== 공통 응답 =====
+
 
 class PatientResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -48,6 +62,7 @@ class PatientListQuery(BaseModel):
 class PatientUpdateRequest(BaseModel):
     name: PatientNameType | None = None
     phone_number: PhoneType | None = None
+
 
 # ===== [김지연] 환자 정보 삭제 =====
 # 응답은 app.schemas.users의 MessageResponse 사용

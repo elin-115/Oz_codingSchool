@@ -1,6 +1,7 @@
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.enums import Gender
 from app.models import AIAnalysisResult, MedicalRecord, Patient, XrayImage
 
 # DB 조회·저장만 담당. 삭제 표시된 환자는 조회 대상에서 제외한다.
@@ -19,20 +20,27 @@ async def create_patient(db: AsyncSession, patient: Patient) -> Patient:
     return patient
 
 
-async def get_patient_list(db: AsyncSession, params) -> list[Patient]:
+async def get_patient_list(
+    db: AsyncSession,
+    name: str | None,
+    gender: Gender | None,
+    min_age: int | None,
+    max_age: int | None,
+) -> list[Patient]:
+    # 값이 있는 조건만 붙인다 (Day04 회원 목록 검색과 같은 방식)
     stmt = select(Patient).where(Patient.is_deleted.is_(False))
 
-    if params.name:
-        stmt = stmt.where(Patient.name.contains(params.name))
+    if name:
+        stmt = stmt.where(Patient.name.contains(name))
 
-    if params.gender:
-        stmt = stmt.where(Patient.gender == params.gender)
+    if gender:
+        stmt = stmt.where(Patient.gender == gender)
 
-    if params.min_age is not None:
-        stmt = stmt.where(Patient.age >= params.min_age)
+    if min_age is not None:
+        stmt = stmt.where(Patient.age >= min_age)
 
-    if params.max_age is not None:
-        stmt = stmt.where(Patient.age <= params.max_age)
+    if max_age is not None:
+        stmt = stmt.where(Patient.age <= max_age)
 
     result = await db.execute(stmt.order_by(Patient.id))
     return list(result.scalars().all())
@@ -57,6 +65,7 @@ async def update_patient(
     await db.commit()
     await db.refresh(patient)
     return patient
+
 
 # ===== [김지연] 환자 정보 삭제 =====
 async def delete_patient(db: AsyncSession, patient_id: int) -> list[str]:

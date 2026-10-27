@@ -6,6 +6,7 @@ from app.models import MedicalRecord
 
 # ===== 공통 응답 =====
 
+
 class MedicalRecordListResponse(BaseModel):
     # 환자별 진료기록 목록의 한 줄 (API 7)
     model_config = ConfigDict(from_attributes=True)
@@ -46,8 +47,8 @@ class MedicalRecordResponse(BaseModel):
 # ===== [박유정] 환자별 진료기록 목록 / 진료기록 상세 =====
 # 목록: MedicalRecordListResponse의 symptoms가 100자를 넘으면 잘라서 응답 (field_validator 등)
 # 상세: 공통 MedicalRecordResponse.from_record 사용
-
 SYMPTOMS_PREVIEW_LENGTH = 100
+
 
 def shorten_symptoms(symptoms: str) -> str:
     # 목록에서 증상 100자 초과 시, 앞 100자만 표시 후 끝에 "…" 붙이기 구현

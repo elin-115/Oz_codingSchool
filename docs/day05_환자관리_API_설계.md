@@ -69,7 +69,7 @@ API 주소와 요청·응답 필드는 템플릿 프론트엔드(`static/apis.js
 | phone_number | 하이픈 없이 `01`로 시작하는 10-11자리 숫자 (Day04 `PhoneType` 재사용) |
 | chart_number | 진료 차트 넘버, 1-50자, **중복 불가** (DB `unique`) |
 | symptoms | 진료된 증상, 1자 이상 |
-| xray_image | 이미지 파일 (`image/png`, `image/jpeg`), 최대 10MB |
+| xray_image | 이미지 파일 (`image/png`, `image/jpeg`), 최대 10MB (이유는 3장) |
 
 ### 1-5. 환자 정보 응답 형식 (`PatientResponse`)
 
@@ -594,6 +594,16 @@ GET /api/v1/patients?name=홍&gender=male&min_age=30&max_age=60
 ### X-Ray 촬영일시
 
 - 프론트에 입력 칸이 없어 업로드한 시각으로 저장한다 (API 6 비고).
+
+### X-Ray 이미지: png·jpeg, 10MB 이하
+
+- **요구사항**: 형식·크기 제한 없음 (REQ-MDR-001)
+- **결정**: png·jpeg만, 10MB 이하 (팀 논의 10/27)
+- **이유**
+  1. 제한이 없으면 큰 파일이 서버 디스크를 채우고 업로드가 느려져, 3초 응답(NFR-MDR-001)을 지키기 어렵다.
+  2. jpg·png로 변환한 흉부 X-Ray는 대부분 수 MB 이하라 10MB면 충분하다.
+  3. 병원 원본 형식(DICOM)은 이번 과제 범위 밖이라 받지 않는다. 프론트 미리보기도 일반 이미지만 지원한다.
+- 프론트 진료기록 등록 화면에도 라벨 `(png, jpg, 10MB 이하)`와 `accept="image/png, image/jpeg"`로 안내한다.
 
 ## 4. 코드 구조와 분담
 
