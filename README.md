@@ -35,6 +35,7 @@ uv run alembic downgrade -1
 | Day03 | 10/23 | [프로젝트 뜯어보기](docs/day03_프로젝트_뜯어보기.md) | 디렉터리·파일 역할, DB 연결, alembic, API 구현 흐름 |
 | Day03 | 10/23 | [DB 마이그레이션](docs/day03_db_migration.md) | ERD 기반 모델 작성, 마이그레이션 결과, 트러블슈팅 |
 | Day04 | 10/26 | [User API 설계](docs/day04_USER_API_설계.md) | 요구사항 기반 User API 10종 명세, 인증·권한 설계 |
+| Day05 | 10/27 | [환자 관리 API 설계](docs/day05_환자관리_API_설계.md) | 환자 관리·진료기록 API 8종 명세, 의료진 권한, X-Ray 저장, 영구 삭제 |
 
 ## 📝 작업 내역
 
