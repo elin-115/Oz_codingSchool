@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.files import delete_media_file
 from app.models import Patient
 from app.repositories import patients as patient_repository
+from app.schemas.patients import PatientCreate, PatientListQuery, PatientUpdateRequest
 
 # 비즈니스 규칙(존재 확인, 검색 조건 검사 등)을 담당하고 DB 작업은 repository에 맡긴다.
 
@@ -17,10 +18,9 @@ async def get_patient_or_404(db: AsyncSession, patient_id: int) -> Patient:
 
 
 # ===== [김도엽] 환자 등록 / 환자 목록 조회 =====
-
 async def create_patient(
     db: AsyncSession,
-    data,
+    data: PatientCreate,
 ) -> Patient:
     patient = Patient(
         name=data.name,
@@ -33,7 +33,7 @@ async def create_patient(
 
 async def get_patient_list(
     db: AsyncSession,
-    params,
+    params: PatientListQuery,
 ) -> list[Patient]:
     if (
         params.min_age is not None
@@ -45,11 +45,12 @@ async def get_patient_list(
             detail="최소 나이는 최대 나이보다 클 수 없습니다.",
         )
 
-    return await patient_repository.get_patient_list(db, params)
+    return await patient_repository.get_patient_list(
+        db, params.name, params.gender, params.min_age, params.max_age
+    )
+
 
 # ===== [이명석] 환자 상세 조회 / 환자 정보 수정 =====
-from app.schemas.patients import PatientUpdateRequest
-
 async def get_patient(db: AsyncSession, patient_id: int) -> Patient:
     # 존재하지 않거나 삭제된 환자는 공통 로직에서 404로 처리한다.
     return await get_patient_or_404(db, patient_id)
@@ -65,12 +66,13 @@ async def update_patient(
     if not update_data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="수정할 항목을 하나 이상 입력해 주세요.",
+            detail="수정할 항목을 하나 이상 입력해주세요.",
         )
 
     # 수정 전에 환자의 존재 여부를 확인하고, DB 작업은 repository에 맡긴다.
     patient = await get_patient_or_404(db, patient_id)
     return await patient_repository.update_patient(db, patient, **update_data)
+
 
 # ===== [김지연] 환자 정보 삭제 =====
 async def delete_patient(db: AsyncSession, patient_id: int) -> None:
