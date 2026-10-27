@@ -2,17 +2,6 @@
 
 흉부 X-Ray 이미지 기반 폐렴 판독 모델을 활용한 **폐렴 환자 관리 백오피스** 프로젝트입니다.
 
-## 📚 문서
-
-| Day | 문서 | 내용 |
-|---|---|---|
-| Day01 | [팀 규칙](docs/day01_team_rules.md) | 팀원, 팀 규칙, Git 협업 규칙, 커밋 컨벤션 |
-| Day01 | [작업 내역](docs/day01_작업내역.md) | 레포 설정, 브랜치 보호 규칙, 팀 규칙 문서화 |
-| Day02 | [Git Branch 전략](docs/day02_git_branch_전략.md) | Git Flow와 GitHub Flow 비교, 우리 팀 브랜치 전략 |
-| Day02 | [작업 내역](docs/day02_작업내역.md) | 회원 API 5종 협업, PR 흐름, 코드 리뷰 |
-| Day03 | [프로젝트 뜯어보기](docs/day03_프로젝트_뜯어보기.md) | 디렉터리·파일 역할, DB 연결, alembic, API 구현 흐름 |
-| Day03 | [DB 마이그레이션](docs/day03_db_migration.md) | ERD 기반 모델 작성, 마이그레이션 결과, 트러블슈팅 |
-| Day03 | [작업 내역](docs/day03_작업내역.md) | 새로 만든 파일, 수정한 파일, 이유와 방법 |
 
 ## Alembic Migration Guide
 
@@ -35,3 +24,25 @@ uv run alembic upgrade head
 ```bash
 uv run alembic downgrade -1
 ```
+
+
+## 📚 과제 문서
+
+| Day | 날짜 | 문서 | 내용 |
+|---|---|---|---|
+| Day01 | 10/21 | [팀 규칙](docs/day01_team_rules.md) | 팀원, 팀 규칙, Git 협업 규칙, 커밋 컨벤션 |
+| Day02 | 10/22 | [Git Branch 전략](docs/day02_git_branch_전략.md) | Git Flow와 GitHub Flow 비교, 우리 팀 브랜치 전략 |
+| Day03 | 10/23 | [프로젝트 뜯어보기](docs/day03_프로젝트_뜯어보기.md) | 디렉터리·파일 역할, DB 연결, alembic, API 구현 흐름 |
+| Day03 | 10/23 | [DB 마이그레이션](docs/day03_db_migration.md) | ERD 기반 모델 작성, 마이그레이션 결과, 트러블슈팅 |
+| Day04 | 10/26 | [User API 설계](docs/day04_USER_API_설계.md) | 요구사항 기반 User API 10종 명세, 인증·권한 설계 |
+
+## 📝 작업 내역
+
+매일 무엇을, 왜, 어떻게 만들고 바꿨는지 기록한다.
+
+| Day | 날짜 | 문서 | 주요 작업 |
+|---|---|---|---|
+| Day01 | 10/21 | [작업 내역](docs/day01_작업내역.md) | 레포 설정, 브랜치 보호 규칙, 팀 규칙 문서화 |
+| Day02 | 10/22 | [작업 내역](docs/day02_작업내역.md) | 회원 API 5종 협업, PR 흐름, 코드 리뷰 |
+| Day03 | 10/23 | [작업 내역](docs/day03_작업내역.md) | DB 모델·마이그레이션, Soft Delete 전환, 팀원 DB 적용 |
+| Day04 | 10/26 | [작업 내역](docs/day04_작업내역.md) | User API 10개, 코드 리뷰, 회원 목록 검색, 프론트 통합 테스트와 버그 수정 |

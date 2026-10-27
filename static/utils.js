@@ -57,6 +57,15 @@ const utils = {
         e.target.value = formattedValue;
     },
 
+    // [NFR-USER-002] 비밀번호 보기 아이콘: 누르면 입력한 비밀번호가 보이고, 다시 누르면 가려진다
+    togglePassword(button) {
+        const input = button.previousElementSibling;
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        button.classList.toggle('is-visible', isHidden);
+        button.setAttribute('aria-label', isHidden ? '비밀번호 숨기기' : '비밀번호 보기');
+    },
+
     templatesCache: {},
 
     async loadTemplate(name) {
