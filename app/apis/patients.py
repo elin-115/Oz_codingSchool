@@ -1,8 +1,10 @@
 from fastapi import APIRouter, status
 
 from app.core.dependencies import DBSession, MedicalUser, StaffUser
+from app.schemas.medical_records import MedicalRecordListResponse, shorten_symptoms
 from app.schemas.patients import PatientResponse
 from app.schemas.users import MessageResponse
+from app.services import medical_records as medical_record_service
 from app.services import patients as patient_service
 
 patient_router = APIRouter(prefix="/api/v1/patients", tags=["Patients"])
@@ -68,3 +70,15 @@ async def delete_patient(patient_id: int, db: DBSession, user: StaffUser) -> Mes
 
 # ===== [박유정] 환자별 진료기록 목록 GET /{patient_id}/medical-records =====
 # 주소가 /patients 아래라 이 파일에 작성 (로직은 services/medical_records.py)
+
+@patient_router.get("/{patient_id}/medical-records")
+async def get_patient_medical_records(
+    patient_id: int, user: StaffUser, db: DBSession
+) -> list[MedicalRecordListResponse]:
+    records = await medical_record_service.get_patient_records(db, patient_id)
+    responses = []
+    for record in records:
+        item = MedicalRecordListResponse.model_validate(record)
+        item.symptoms = shorten_symptoms(item.symptoms)
+        responses.append(item)
+    return responses
