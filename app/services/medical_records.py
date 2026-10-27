@@ -1,7 +1,10 @@
-from fastapi import HTTPException, status
+from datetime import UTC, datetime
+
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import MedicalRecord
+from app.core.files import delete_media_file, save_xray_image
+from app.models import MedicalRecord, User, XrayImage
 from app.repositories import medical_records as medical_record_repository
 from app.services import patients as patient_service
 
@@ -9,6 +12,47 @@ from app.services import patients as patient_service
 
 
 # ===== [김지연] 진료기록 등록 =====
+# 업로드할 수 있는 이미지 종류(Content-Type)와 저장할 확장자
+XRAY_EXTENSIONS = {"image/png": ".png", "image/jpeg": ".jpg"}
+MAX_XRAY_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+async def create_medical_record(
+    db: AsyncSession,
+    user: User,
+    patient_id: int,
+    chart_number: str,
+    symptoms: str,
+    xray_image: UploadFile,
+) -> MedicalRecord:
+    await patient_service.get_patient_or_404(db, patient_id)
+    if await medical_record_repository.exists_chart_number(db, chart_number):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 등록된 진료 차트 넘버입니다.")
+
+    # 파일 확장자 이름은 바꿀 수 있으므로, 브라우저가 알려준 파일 종류(Content-Type)로 확인
+    extension = XRAY_EXTENSIONS.get(xray_image.content_type)
+    if extension is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="png 또는 jpeg 이미지만 업로드할 수 있습니다.")
+    content = await xray_image.read()
+    if len(content) > MAX_XRAY_SIZE:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="이미지는 10MB 이하만 업로드할 수 있습니다.")
+
+    image_url = save_xray_image(content, extension)
+    record = MedicalRecord(
+        patient_id=patient_id,
+        chart_number=chart_number,
+        symptoms=symptoms,
+        # 촬영일시는 프론트에 입력 칸이 없어 업로드한 시각으로 저장 (설계 문서 3장)
+        xray_images=[
+            XrayImage(uploader_id=user.id, image_url=image_url, shooting_datetime=datetime.now(UTC))
+        ],
+    )
+    try:
+        return await medical_record_repository.create_medical_record(db, record)
+    except Exception:
+        # DB 저장이 실패하면 사진 파일만 남지 않도록 지운다
+        delete_media_file(image_url)
+        raise
 
 
 # ===== [박유정] 환자별 진료기록 목록 / 진료기록 상세 =====

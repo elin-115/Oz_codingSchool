@@ -6,7 +6,7 @@
 API 주소와 요청·응답 필드는 템플릿 프론트엔드(`static/apis.js`, `static/pages.js`)가 호출하고 읽는 형식에 맞춤  
 
 - Base URL: `/api/v1`
-- 인증: Day04 User API와 같다. 모든 API는 `Authorization: Bearer <access_token>` 헤더가 필요하다.
+- 인증: Day04 User API와 동일. 모든 API는 `Authorization: Bearer <access_token>` 헤더가 필요하다.
 - 성능: 모든 API는 3초 이내에 응답한다 (NFR-PTNT-001, NFR-MDR-001). 목록 조회는 필요한 컬럼만 조회하고, 진료기록 상세는 X-Ray 이미지를 한 번에 함께 불러온다(`selectinload`).
 
 ### API 목록
@@ -412,7 +412,7 @@ GET /api/v1/patients?name=홍&gender=male&min_age=30&max_age=60
 
 #### 4) 비고
 
-- **영구 삭제(Hard Delete)**로 처리한다. 3장 참고.
+- **영구 삭제(Hard Delete)** 로 처리한다. 3장 참고.
 - FK가 `RESTRICT`이므로 자식부터 지운다: AI 분석 결과 → X-Ray 이미지 행 → 진료기록 → 환자. 한 트랜잭션에서 처리해 중간에 실패하면 모두 되돌린다.
 - DB 삭제가 성공한 뒤 `media/xray/`의 이미지 파일도 지운다. 파일이 이미 없으면 무시한다.
 - 확인 팝업(`확인했습니다`)은 프론트가 띄우므로 API는 한 번만 호출된다.
