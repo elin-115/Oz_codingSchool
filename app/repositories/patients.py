@@ -12,6 +12,30 @@ async def get_patient_by_id(db: AsyncSession, patient_id: int) -> Patient | None
 
 
 # ===== [김도엽] 환자 등록 / 환자 목록 조회 =====
+async def create_patient(db: AsyncSession, patient: Patient) -> Patient:
+    db.add(patient)
+    await db.commit()
+    await db.refresh(patient)
+    return patient
+
+
+async def get_patient_list(db: AsyncSession, params) -> list[Patient]:
+    stmt = select(Patient).where(Patient.is_deleted.is_(False))
+
+    if params.name:
+        stmt = stmt.where(Patient.name.contains(params.name))
+
+    if params.gender:
+        stmt = stmt.where(Patient.gender == params.gender)
+
+    if params.min_age is not None:
+        stmt = stmt.where(Patient.age >= params.min_age)
+
+    if params.max_age is not None:
+        stmt = stmt.where(Patient.age <= params.max_age)
+
+    result = await db.execute(stmt.order_by(Patient.id))
+    return list(result.scalars().all())
 
 
 # ===== [이명석] 환자 상세 조회 / 환자 정보 수정 =====
