@@ -21,6 +21,28 @@ async def get_patient_or_404(db: AsyncSession, patient_id: int) -> Patient:
 
 
 # ===== [이명석] 환자 상세 조회 / 환자 정보 수정 =====
+from app.schemas.patients import PatientUpdateRequest
 
+async def get_patient(db: AsyncSession, patient_id: int) -> Patient:
+    # 존재하지 않거나 삭제된 환자는 공통 로직에서 404로 처리한다.
+    return await get_patient_or_404(db, patient_id)
+
+
+async def update_patient(
+    db: AsyncSession,
+    patient_id: int,
+    data: PatientUpdateRequest,
+) -> Patient:
+    # 값이 전달된 항목만 수정 대상으로 사용한다.
+    update_data = data.model_dump(exclude_none=True)
+    if not update_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="수정할 항목을 하나 이상 입력해 주세요.",
+        )
+
+    # 수정 전에 환자의 존재 여부를 확인하고, DB 작업은 repository에 맡긴다.
+    patient = await get_patient_or_404(db, patient_id)
+    return await patient_repository.update_patient(db, patient, **update_data)
 
 # ===== [김지연] 환자 정보 삭제 =====

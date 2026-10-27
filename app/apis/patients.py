@@ -13,7 +13,30 @@ patient_router = APIRouter(prefix="/api/v1/patients", tags=["Patients"])
 
 
 # ===== [이명석] 환자 상세 조회 GET /{patient_id} · 환자 정보 수정 PATCH /{patient_id} =====
+from fastapi import status
+from app.schemas.patients import PatientUpdateRequest
 
+@patient_router.get("/{patient_id}", status_code=status.HTTP_200_OK)
+async def get_patient(
+    patient_id: int,
+    db: DBSession,
+    staff: StaffUser,
+) -> PatientResponse:
+    # 승인된 회원만 환자 상세 정보를 조회할 수 있다.
+    patient = await patient_service.get_patient(db, patient_id)
+    return PatientResponse.model_validate(patient)
+
+
+@patient_router.patch("/{patient_id}", status_code=status.HTTP_200_OK)
+async def update_patient(
+    patient_id: int,
+    data: PatientUpdateRequest,
+    db: DBSession,
+    staff: StaffUser,
+) -> PatientResponse:
+    # 요청에 포함된 이름·전화번호만 수정하고 갱신된 환자 정보를 반환한다.
+    patient = await patient_service.update_patient(db, patient_id, data)
+    return PatientResponse.model_validate(patient)
 
 # ===== [김지연] 환자 정보 삭제 DELETE /{patient_id} =====
 

@@ -35,7 +35,9 @@ class PatientResponse(BaseModel):
 # ===== [이명석] 환자 상세 조회 / 환자 정보 수정 =====
 # 상세 조회는 공통 PatientResponse 사용
 # 수정 요청: name, phone_number 둘 다 선택 (나이·성별은 수정 불가)
-
+class PatientUpdateRequest(BaseModel):
+    name: PatientNameType | None = None
+    phone_number: PhoneType | None = None
 
 # ===== [김지연] 환자 정보 삭제 =====
 # 응답은 app.schemas.users의 MessageResponse 사용
