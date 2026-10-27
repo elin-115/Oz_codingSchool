@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.databases import async_get_db
-from app.core.enums import UserRole
+from app.core.enums import Department, UserRole
 from app.core.security import ACCESS_TOKEN_TYPE, decode_token
 from app.models import User
 from app.repositories import users as user_repository
@@ -59,3 +59,13 @@ async def get_admin_user(user: CurrentUser) -> User:
 
 StaffUser = Annotated[User, Depends(get_staff_user)]
 AdminUser = Annotated[User, Depends(get_admin_user)]
+
+
+async def get_medical_user(user: StaffUser) -> User:
+    # 요구사항의 "사내 의료인"은 권한(role)에 없으므로 부서로 판단 (환자 등록, 진료기록 등록)
+    if user.department != Department.MEDICAL:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="의료진만 이용할 수 있습니다.")
+    return user
+
+
+MedicalUser = Annotated[User, Depends(get_medical_user)]

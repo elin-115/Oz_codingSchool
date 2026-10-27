@@ -25,3 +25,6 @@ envs/
 # Model weights
 *.pth
 *.pt
+
+# Uploaded files (X-Ray images)
+media/
