@@ -50,6 +50,6 @@ async def update_patient(
 async def delete_patient(db: AsyncSession, patient_id: int) -> None:
     await get_patient_or_404(db, patient_id)
     image_urls = await patient_repository.delete_patient(db, patient_id)
-    # DB 삭제가 성공한 뒤에 이미지 파일을 지운다 (DB가 실패하면 파일은 그대로 남음)
+    # DB 삭제가 성공한 뒤에 이미지 파일을 지움 (DB가 실패하면 파일은 그대로 남음)
     for image_url in image_urls:
         delete_media_file(image_url)
