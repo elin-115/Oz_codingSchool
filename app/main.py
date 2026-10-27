@@ -6,6 +6,8 @@ from starlette.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
 from app.apis.admin import admin_router
+from app.apis.medical_records import medical_record_router
+from app.apis.patients import patient_router
 from app.apis.practice_apis import practice_router
 from app.apis.users import user_router
 
@@ -33,6 +35,8 @@ app = FastAPI(
 app.include_router(practice_router)
 app.include_router(user_router)
 app.include_router(admin_router)
+app.include_router(patient_router)
+app.include_router(medical_record_router)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
