@@ -9,8 +9,28 @@ patient_router = APIRouter(prefix="/api/v1/patients", tags=["Patients"])
 
 # 권한: 등록은 MedicalUser(의료진), 나머지는 StaffUser(승인된 회원). 타입 자리에 바로 사용 (Depends로 감싸지 않음)
 
-
 # ===== [김도엽] 환자 등록 POST "" · 환자 목록 조회 GET "" =====
+
+from typing import Annotated
+from fastapi import Query
+from app.schemas.patients import PatientCreate, PatientListQuery
+
+@patient_router.post("", response_model=PatientResponse, status_code=201)
+async def create_patient(
+    data: PatientCreate,
+    db: DBSession,
+    user: MedicalUser,
+):
+    return await patient_service.create_patient(db, data)
+
+
+@patient_router.get("", response_model=list[PatientResponse])
+async def get_patient_list(
+    db: DBSession,
+    user: StaffUser,
+    params: Annotated[PatientListQuery, Query()],
+):
+    return await patient_service.get_patient_list(db, params)
 
 
 # ===== [이명석] 환자 상세 조회 GET /{patient_id} · 환자 정보 수정 PATCH /{patient_id} =====

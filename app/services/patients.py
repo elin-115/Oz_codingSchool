@@ -17,9 +17,35 @@ async def get_patient_or_404(db: AsyncSession, patient_id: int) -> Patient:
 
 
 # ===== [김도엽] 환자 등록 / 환자 목록 조회 =====
-# 등록: Patient(phone=data.phone_number, ...) 처럼 DB 컬럼 이름 phone에 옮겨 담기
-# 목록: min_age > max_age면 400
 
+async def create_patient(
+    db: AsyncSession,
+    data,
+) -> Patient:
+    patient = Patient(
+        name=data.name,
+        age=data.age,
+        gender=data.gender,
+        phone=data.phone_number,
+    )
+    return await patient_repository.create_patient(db, patient)
+
+
+async def get_patient_list(
+    db: AsyncSession,
+    params,
+) -> list[Patient]:
+    if (
+        params.min_age is not None
+        and params.max_age is not None
+        and params.min_age > params.max_age
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="최소 나이는 최대 나이보다 클 수 없습니다.",
+        )
+
+    return await patient_repository.get_patient_list(db, params)
 
 # ===== [이명석] 환자 상세 조회 / 환자 정보 수정 =====
 from app.schemas.patients import PatientUpdateRequest

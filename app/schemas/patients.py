@@ -28,8 +28,18 @@ class PatientResponse(BaseModel):
 
 
 # ===== [김도엽] 환자 등록 / 환자 목록 조회 =====
-# 등록 요청: name, age, gender, phone_number (PatientNameType, AgeType, Gender, PhoneType 사용)
-# 목록 검색 조건: 쿼리 파라미터 모델 (name, gender, min_age, max_age 모두 선택)
+class PatientCreate(BaseModel):
+    name: PatientNameType
+    age: AgeType
+    gender: Gender
+    phone_number: PhoneType
+
+
+class PatientListQuery(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=30)
+    gender: Gender | None = None
+    min_age: AgeType | None = None
+    max_age: AgeType | None = None
 
 
 # ===== [이명석] 환자 상세 조회 / 환자 정보 수정 =====
