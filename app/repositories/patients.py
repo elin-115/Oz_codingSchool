@@ -14,7 +14,7 @@ async def get_patient_by_id(db: AsyncSession, patient_id: int) -> Patient | None
 # ===== [김도엽] 환자 등록 / 환자 목록 조회 =====
 
 
-# ===== [박유정] 환자 상세 조회 / 환자 정보 수정 =====
+# ===== [이명석] 환자 상세 조회 / 환자 정보 수정 =====
 
 
 # ===== [김지연] 환자 정보 삭제 =====

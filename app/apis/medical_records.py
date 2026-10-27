@@ -12,4 +12,4 @@ medical_record_router = APIRouter(prefix="/api/v1/medical-records", tags=["Medic
 # ===== [김지연] 진료기록 등록 POST "" =====
 
 
-# ===== [이명석] 진료기록 상세 조회 GET /{record_id} =====
+# ===== [박유정] 진료기록 상세 조회 GET /{record_id} =====

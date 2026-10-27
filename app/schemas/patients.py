@@ -32,7 +32,7 @@ class PatientResponse(BaseModel):
 # 목록 검색 조건: 쿼리 파라미터 모델 (name, gender, min_age, max_age 모두 선택)
 
 
-# ===== [박유정] 환자 상세 조회 / 환자 정보 수정 =====
+# ===== [이명석] 환자 상세 조회 / 환자 정보 수정 =====
 # 상세 조회는 공통 PatientResponse 사용
 # 수정 요청: name, phone_number 둘 다 선택 (나이·성별은 수정 불가)
 

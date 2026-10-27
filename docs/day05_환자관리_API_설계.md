@@ -15,12 +15,12 @@ API 주소와 요청·응답 필드는 템플릿 프론트엔드(`static/apis.js
 |---|---|---|---|---|---|---|
 | 1 | 환자 등록 | POST | `/api/v1/patients` | 의료진 | REQ-PTNT-001 | 김도엽 |
 | 2 | 환자 목록 조회 (검색·필터) | GET | `/api/v1/patients` | 승인된 회원 | REQ-PTNT-002 | 김도엽 |
-| 3 | 환자 상세 조회 | GET | `/api/v1/patients/{patient_id}` | 승인된 회원 | REQ-PTNT-003 | 박유정 |
-| 4 | 환자 정보 수정 | PATCH | `/api/v1/patients/{patient_id}` | 승인된 회원 | REQ-PTNT-004 | 박유정 |
+| 3 | 환자 상세 조회 | GET | `/api/v1/patients/{patient_id}` | 승인된 회원 | REQ-PTNT-003 | 이명석 |
+| 4 | 환자 정보 수정 | PATCH | `/api/v1/patients/{patient_id}` | 승인된 회원 | REQ-PTNT-004 | 이명석 |
 | 5 | 환자 정보 삭제 | DELETE | `/api/v1/patients/{patient_id}` | 승인된 회원 | REQ-PTNT-005 | 김지연 |
 | 6 | 진료기록 등록 | POST | `/api/v1/medical-records` | 의료진 | REQ-MDR-001 | 김지연 |
-| 7 | 환자별 진료기록 목록 조회 | GET | `/api/v1/patients/{patient_id}/medical-records` | 승인된 회원 | REQ-MDR-002 | 이명석 |
-| 8 | 진료기록 상세 조회 | GET | `/api/v1/medical-records/{record_id}` | 승인된 회원 | REQ-MDR-003 | 이명석 |
+| 7 | 환자별 진료기록 목록 조회 | GET | `/api/v1/patients/{patient_id}/medical-records` | 승인된 회원 | REQ-MDR-002 | 박유정 |
+| 8 | 진료기록 상세 조회 | GET | `/api/v1/medical-records/{record_id}` | 승인된 회원 | REQ-MDR-003 | 박유정 |
 
 > 프론트에 있는 AI 예측(`POST /medical-records/{id}/predict`, `GET /medical-records/{id}/analyses`)은 다음 Stage 범위라 이번 설계에서 제외한다.
 
@@ -280,7 +280,7 @@ GET /api/v1/patients?name=홍&gender=male&min_age=30&max_age=60
 | 엔드포인트 | `/api/v1/patients/{patient_id}` |
 | 메서드 | `GET` |
 | 인증 필요 여부 | Y (`StaffUser`) |
-| 담당 | 박유정 |
+| 담당 | 이명석 |
 
 #### 2) 요청 (Request)
 
@@ -323,7 +323,7 @@ GET /api/v1/patients?name=홍&gender=male&min_age=30&max_age=60
 | 엔드포인트 | `/api/v1/patients/{patient_id}` |
 | 메서드 | `PATCH` |
 | 인증 필요 여부 | Y (`StaffUser`) |
-| 담당 | 박유정 |
+| 담당 | 이명석 |
 
 #### 2) 요청 (Request)
 
@@ -488,7 +488,7 @@ GET /api/v1/patients?name=홍&gender=male&min_age=30&max_age=60
 | 엔드포인트 | `/api/v1/patients/{patient_id}/medical-records` |
 | 메서드 | `GET` |
 | 인증 필요 여부 | Y (`StaffUser`) |
-| 담당 | 이명석 |
+| 담당 | 박유정 |
 
 #### 2) 요청 (Request)
 
@@ -539,7 +539,7 @@ GET /api/v1/patients?name=홍&gender=male&min_age=30&max_age=60
 | 엔드포인트 | `/api/v1/medical-records/{record_id}` |
 | 메서드 | `GET` |
 | 인증 필요 여부 | Y (`StaffUser`) |
-| 담당 | 이명석 |
+| 담당 | 박유정 |
 
 #### 2) 요청 (Request)
 
@@ -619,8 +619,8 @@ app/
 |---|---|
 | 김지연 | 공통 뼈대(설계 문서, `MedicalUser`, 응답 스키마, 공통 조회 함수, 라우터 등록) + 환자 삭제 + 진료기록 등록 |
 | 김도엽 | 환자 등록 + 환자 목록 조회(검색·필터) |
-| 박유정 | 환자 상세 조회 + 환자 정보 수정 |
-| 이명석 | 환자별 진료기록 목록 조회 + 진료기록 상세 조회 |
+| 박유정 | 환자별 진료기록 목록 조회 + 진료기록 상세 조회 |
+| 이명석 | 환자 상세 조회 + 환자 정보 수정 |
 
 - 김지연이 뼈대를 먼저 merge하고, 팀원은 각자 develop에서 브랜치를 따서 작업한다. 김지연의 API 2개도 뼈대 merge 후 같은 방식으로 PR을 올린다.
 - 팀원은 각 파일의 `# ===== [이름] ... =====` 주석 아래에만 작성해 충돌을 줄인다.

@@ -12,11 +12,11 @@ patient_router = APIRouter(prefix="/api/v1/patients", tags=["Patients"])
 # ===== [김도엽] 환자 등록 POST "" · 환자 목록 조회 GET "" =====
 
 
-# ===== [박유정] 환자 상세 조회 GET /{patient_id} · 환자 정보 수정 PATCH /{patient_id} =====
+# ===== [이명석] 환자 상세 조회 GET /{patient_id} · 환자 정보 수정 PATCH /{patient_id} =====
 
 
 # ===== [김지연] 환자 정보 삭제 DELETE /{patient_id} =====
 
 
-# ===== [이명석] 환자별 진료기록 목록 GET /{patient_id}/medical-records =====
+# ===== [박유정] 환자별 진료기록 목록 GET /{patient_id}/medical-records =====
 # 주소가 /patients 아래라 이 파일에 작성 (로직은 services/medical_records.py)

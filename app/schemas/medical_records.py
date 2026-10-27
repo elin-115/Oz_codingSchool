@@ -12,7 +12,7 @@ class MedicalRecordListResponse(BaseModel):
 
     id: int
     chart_number: str
-    symptoms: str  # 100자 초과 시 앞 100자 + "…" (아래 [이명석] 섹션에서 처리)
+    symptoms: str  # 100자 초과 시 앞 100자 + "…" (아래 [박유정] 섹션에서 처리)
     created_at: datetime
 
 
@@ -43,6 +43,6 @@ class MedicalRecordResponse(BaseModel):
 # 요청은 FormData(patient_id, chart_number, symptoms, xray_image)라 apis에서 Form(), UploadFile로 받음
 
 
-# ===== [이명석] 환자별 진료기록 목록 / 진료기록 상세 =====
+# ===== [박유정] 환자별 진료기록 목록 / 진료기록 상세 =====
 # 목록: MedicalRecordListResponse의 symptoms가 100자를 넘으면 잘라서 응답 (field_validator 등)
 # 상세: 공통 MedicalRecordResponse.from_record 사용

@@ -8,5 +8,5 @@ from app.models import MedicalRecord
 # ===== [김지연] 진료기록 등록 =====
 
 
-# ===== [이명석] 환자별 진료기록 목록 / 진료기록 상세 =====
+# ===== [박유정] 환자별 진료기록 목록 / 진료기록 상세 =====
 # 상세는 X-Ray 이미지를 함께 불러온다: .options(selectinload(MedicalRecord.xray_images))

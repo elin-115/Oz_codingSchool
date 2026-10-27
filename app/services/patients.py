@@ -20,7 +20,7 @@ async def get_patient_or_404(db: AsyncSession, patient_id: int) -> Patient:
 # 목록: min_age > max_age면 400
 
 
-# ===== [박유정] 환자 상세 조회 / 환자 정보 수정 =====
+# ===== [이명석] 환자 상세 조회 / 환자 정보 수정 =====
 
 
 # ===== [김지연] 환자 정보 삭제 =====
