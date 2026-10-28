@@ -1,11 +1,14 @@
 from pathlib import Path
 from uuid import uuid4
 
+from PIL import Image
+
 # 업로드 파일은 서버가 실행되는 환경의 로컬 저장소(media 폴더)에 저장 (REQ-MDR-001)
 # app/main.py가 media 폴더를 /media 주소로 열어두므로, 저장한 파일은 /media/... 주소로 접근할 수 있다.
 MEDIA_DIR = Path(__file__).resolve().parent.parent.parent / "media"
 MEDIA_URL = "/media"
 XRAY_FOLDER = "xray"
+HEATMAP_FOLDER = "heatmap"
 
 
 def save_xray_image(content: bytes, extension: str) -> str:
@@ -15,6 +18,15 @@ def save_xray_image(content: bytes, extension: str) -> str:
     file_name = f"{uuid4().hex}{extension}"
     (folder / file_name).write_bytes(content)
     return f"{MEDIA_URL}/{XRAY_FOLDER}/{file_name}"
+
+
+def save_heatmap_image(image: Image.Image) -> str:
+    # AI가 만든 히트맵 이미지를 media/heatmap/{uuid}.png로 저장하고 DB에 넣을 주소를 돌려준다
+    folder = MEDIA_DIR / HEATMAP_FOLDER
+    folder.mkdir(parents=True, exist_ok=True)
+    file_name = f"{uuid4().hex}.png"
+    image.save(folder / file_name)
+    return f"{MEDIA_URL}/{HEATMAP_FOLDER}/{file_name}"
 
 
 def delete_media_file(url: str) -> None:
