@@ -44,6 +44,8 @@ API 번호는 Day05(1~8)에 이어서 붙임
 | `load_model` | `worker/model.py` | 서버 시작 시 모델 파일을 읽어 메모리에 올림 (`app/main.py`의 lifespan에서 호출) |
 | `predict` | `worker/model.py` | 이미지 경로를 받아 `PredictionResult`(폐렴 여부, confidence) 반환 |
 | `MODEL_NAME` | `worker/model.py` | DB `ai_model`에 저장할 모델 이름. 결과 재사용 기준 |
+| `make_heatmap` | `worker/model.py` | 이미지 경로를 받아 Grad-CAM 히트맵 이미지(224×224 PNG) 반환 (3장 "히트맵") |
+| `save_heatmap_image` | `app/core/files.py` | 히트맵을 `media/heatmap/{uuid}.png`로 저장하고 `/media/heatmap/...` 주소 반환 |
 | `AIAnalysisResponse` | `app/schemas/ai_analyses.py` | 예측 결과 응답 (1-3) |
 | `media_url_to_path` | `app/core/files.py` | `/media/xray/abc.png` → 실제 파일 경로 |
 | `get_record_or_404` | `app/services/medical_records.py` | 진료기록이 없으면 404 (Day05 재사용) |
@@ -56,7 +58,7 @@ API 번호는 Day05(1~8)에 이어서 붙임
   "record_id": 3,
   "is_pneumonia": true,
   "confidence": 93.25,
-  "heatmap_url": null,
+  "heatmap_url": "/media/heatmap/3b1f9c....png",
   "ai_model": "ensemble_3models_fold1_v1",
   "created_at": "2026-10-28T10:00:00"
 }
@@ -68,7 +70,7 @@ API 번호는 Day05(1~8)에 이어서 붙임
 | record_id | integer | 진료 기록 ID |
 | is_pneumonia | boolean | 폐렴 여부 |
 | confidence | number | 예측한 쪽의 확률(%), 0~100, 소수 둘째 자리 |
-| heatmap_url | string \| null | 히트맵 이미지 주소 (선택사항, 지금은 `null`) |
+| heatmap_url | string \| null | Grad-CAM 히트맵 이미지 주소. `<img src>`에 바로 넣음 (만들기 전 결과는 `null`) |
 | ai_model | string | 사용한 모델 이름 |
 | created_at | string (datetime) | 예측 수행 일시 |
 
@@ -177,8 +179,9 @@ worker/
   1. `get_record_or_404`로 진료기록 + X-Ray 이미지 조회
   2. `record_id` + `ai_model == MODEL_NAME`(삭제 표시 제외)으로 저장된 결과가 있으면 **추론하지 않고** 200으로 응답
   3. 없으면 `media_url_to_path`로 이미지 경로를 구해 `predict()` 호출
-  4. 결과를 `ai_analysis_results`에 저장하고 201로 응답
-- `predict()`는 CPU를 쓰는 일반 함수(`def`)라 그대로 부르면 그동안 서버 전체가 멈춤. `await run_in_threadpool(predict, path)`로 따로 돌림 (`from fastapi.concurrency import run_in_threadpool`)
+  4. `make_heatmap()`으로 히트맵을 만들어 `save_heatmap_image()`로 저장 → 주소를 `heatmap_url`에 넣음
+  5. 결과를 `ai_analysis_results`에 저장하고 201로 응답. DB 저장이 실패하면 히트맵 파일 삭제 (Day05 진료기록 등록과 같은 방식)
+- `predict()`, `make_heatmap()`은 CPU를 쓰는 일반 함수(`def`)라 그대로 부르면 그동안 서버 전체가 멈춤. `await run_in_threadpool(predict, path)`로 따로 돌림 (`from fastapi.concurrency import run_in_threadpool`)
 - 같은 결과를 응답하는지는 `Response` 매개변수의 `status_code`를 바꿔서 구분 (`response.status_code = status.HTTP_200_OK`)
 - 프론트는 응답 내용을 쓰지 않고, 성공 알림 후 상세 페이지를 다시 그려 API 10으로 목록을 새로 받음
 
@@ -256,11 +259,22 @@ worker/
 
 ## 3. 요구사항과 다르게 결정한 부분 / 추가로 결정한 부분
 
-### 히트맵 URL: 일단 `null`
+### 히트맵: ResNet50 Grad-CAM
 
 - **요구사항**: Hitmap Image URL은 선택사항
-- **결정**: DB `heatmap_url`을 `NOT NULL` → **`NULL` 허용**으로 바꾸고 지금은 `null` 저장 (마이그레이션 `heatmap_url nullable`)
-- **이유**: 기존 컬럼이 `NOT NULL`이라 빈 값을 넣을 수 없었음. Grad-CAM 히트맵은 시간이 남으면 추가
+- **결정**
+  1. DB `heatmap_url`을 `NOT NULL` → **`NULL` 허용** (마이그레이션 `heatmap_url nullable`). 히트맵을 만들기 전 결과도 저장할 수 있게
+  2. 히트맵은 **3모델 중 ResNet50(fold1) 하나로** Grad-CAM 생성 (`make_heatmap`)
+  3. 모델이 실제로 본 224×224 사진(검은 띠 제거) 위에 중요한 곳일수록 진한 빨간색으로 겹쳐 `media/heatmap/{uuid}.png`로 저장
+- **Grad-CAM**: 마지막 합성곱 블록(`layer4`)의 특징맵 × 예측한 쪽 점수의 기울기 → 모델이 판단할 때 중요하게 본 위치
+- **이유**
+  - ResNet50이 가장 빠르고(0.12초) Grad-CAM 예시가 많은 구조. 3모델을 모두 하면 시간이 3배
+  - 예측 + 히트맵 + 저장을 합쳐 1장 약 1.3초 (3초 기준 안)
+- **한계**
+  - 히트맵의 "예측한 쪽"은 ResNet50 혼자 판단한 결과라, 드물게 3모델 앙상블 결과와 다를 수 있음
+  - 원본 사진이 아니라 잘라서 늘린 224×224 사진 위에 그림 (원본 좌표로 되돌리지 않음)
+- **동시 요청**: 같은 모델에 훅(hook)이 겹치지 않도록 히트맵은 잠금(`threading.Lock`)으로 한 번에 하나씩 생성
+- **삭제**: 환자를 지울 때 X-Ray와 함께 히트맵 파일도 삭제 (Day05 환자 삭제에 추가)
 
 ### 권한: 승인된 회원 전체
 
@@ -302,11 +316,11 @@ worker/
 
 ```
 worker/
-├── model.py                     # [김지연] load_model, predict, MODEL_NAME
+├── model.py                     # [김지연] load_model, predict, make_heatmap, MODEL_NAME
 └── models/                      # 모델 파일(.pt), 커밋 안 됨
 app/
 ├── main.py                      # + lifespan에서 load_model(), ai_analysis_router 등록
-├── core/files.py                # + media_url_to_path
+├── core/files.py                # + media_url_to_path, save_heatmap_image
 ├── models/ai_analysis_results.py  # heatmap_url nullable
 ├── schemas/ai_analyses.py       # AIAnalysisResponse
 ├── repositories/ai_analyses.py  # [김도엽] 저장된 결과 조회·저장 / [박유정] 목록 조회

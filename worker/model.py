@@ -1,3 +1,4 @@
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -155,3 +156,71 @@ def predict(image_path: Path) -> PredictionResult:
     is_pneumonia = prob >= THRESHOLD
     confidence = prob if is_pneumonia else 1 - prob
     return PredictionResult(is_pneumonia=is_pneumonia, confidence=round(confidence * 100, 2))
+
+
+
+
+# ===== [김지연] 히트맵 (Grad-CAM) =====
+HEATMAP_MODEL = "resnet50"  # 히트맵은 3모델 중 가장 빠른 ResNet50 하나로만 만듦 (설계 문서 3장)
+HEATMAP_ALPHA = 0.6         # 빨간색을 가장 진하게 칠할 때의 불투명도 (1이면 원본이 안 보임)
+
+# 여러 요청이 동시에 히트맵을 만들면 같은 모델에 훅이 겹쳐 걸리므로 한 번에 하나씩만 만들게 잠금
+_heatmap_lock = threading.Lock()
+
+
+def make_heatmap(image_path: Path) -> Image.Image:
+    # Grad-CAM: 모델이 판단할 때 사진의 어느 부분을 중요하게 봤는지 색으로 보여줌
+    # 원리: 마지막 합성곱 층의 특징맵(어디에 무엇이 있는지) × 기울기(그 특징이 결과에 얼마나 영향을 줬는지)
+
+    # 1) 모델이 안 올라왔으면 만들 수 없음 → API가 503으로 바꿔서 응답
+    if not _models:
+        raise ModelNotLoadedError
+
+    # 2) predict()와 같은 전처리. base는 모델이 실제로 본 224×224 흑백 사진 (히트맵을 이 위에 겹침)
+    img = Image.open(image_path).convert("L")
+    base = crop_content(letterbox(img))
+    x = eval_tf(base).unsqueeze(0)
+
+    # 3) _models는 MODEL_NAMES 순서대로 FOLDS개씩 들어 있어서, ResNet50의 첫 번째 모델 위치를 계산
+    model = _models[MODEL_NAMES.index(HEATMAP_MODEL) * FOLDS]
+    target_layer = model.layer4[-1]  # ResNet50의 마지막 합성곱 블록 (7×7 크기의 특징맵이 나옴)
+
+    with _heatmap_lock:
+        # 4) 훅(hook): 층을 지나가는 값을 중간에서 몰래 꺼내 저장하는 함수
+        #    forward 훅 → 특징맵(activation), backward 훅 → 기울기(gradient)
+        saved = {}
+        forward_hook = target_layer.register_forward_hook(
+            lambda module, inputs, output: saved.update(activation=output)
+        )
+        backward_hook = target_layer.register_full_backward_hook(
+            lambda module, grad_input, grad_output: saved.update(gradient=grad_output[0])
+        )
+        try:
+            # 5) 예측한 쪽(폐렴 또는 정상) 점수로 backward() → 그 점수에 대한 기울기 계산
+            #    predict()는 no_grad로 기울기를 껐지만, 히트맵은 기울기가 필요해서 enable_grad로 켬
+            with torch.enable_grad():
+                output = model(x)
+                predicted = output.argmax(dim=1).item()  # 0=정상, 1=폐렴
+                output[0, predicted].backward()
+        finally:
+            # 훅을 안 지우면 다음 예측 때도 계속 실행되므로 반드시 제거
+            forward_hook.remove()
+            backward_hook.remove()
+            model.zero_grad(set_to_none=True)  # backward로 쌓인 기울기 비우기 (메모리)
+
+    # 6) 채널마다 기울기 평균 = 그 채널의 중요도 → 특징맵에 곱해서 더함 → 음수는 0 (relu)
+    weights = saved["gradient"].mean(dim=(2, 3), keepdim=True)        # [1, 2048, 1, 1]
+    cam = torch.relu((weights * saved["activation"]).sum(dim=1))[0]   # [7, 7]
+    cam = (cam / (cam.max() + 1e-8)).detach().numpy()                 # 0~1로 맞춤 (1e-8: 0으로 나누기 방지)
+
+    # 7) 7×7 지도를 사진 크기(224×224)로 부드럽게 키움
+    heat = Image.fromarray(np.uint8(cam * 255)).resize(base.size, Image.BILINEAR)
+    heat = np.asarray(heat, dtype=np.float32) / 255  # 다시 0~1
+
+    # 8) 흑백 사진을 RGB로 바꾸고, 중요한 곳일수록 빨간색을 진하게 겹침
+    gray = np.asarray(base.convert("RGB"), dtype=np.float32)
+    red = np.zeros_like(gray)
+    red[..., 0] = 255                                   # R 채널만 255 → 빨간색
+    alpha = (heat * HEATMAP_ALPHA)[..., None]           # 픽셀마다 빨간색 비율 (중요도 × 최대 불투명도)
+    blended = gray * (1 - alpha) + red * alpha          # 원본과 빨간색을 비율대로 섞음
+    return Image.fromarray(np.uint8(blended))
