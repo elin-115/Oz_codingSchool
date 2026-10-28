@@ -7,9 +7,33 @@ from app.models import AIAnalysisResult
 
 
 # ===== [김도엽] AI 폐렴 예측 =====
-# 1) 저장된 결과 찾기: record_id와 ai_model이 같고 삭제 표시가 아닌 결과 1건 (없으면 None)
-# 2) 새 결과 저장: db.add → commit → refresh(created_at을 응답에 쓰기 위해)
+async def get_existing_result(
+    db: AsyncSession,
+    record_id: int,
+    ai_model: str,
+) -> AIAnalysisResult | None:
+    query = (
+        select(AIAnalysisResult)
+        .where(
+            AIAnalysisResult.record_id == record_id,
+            AIAnalysisResult.ai_model == ai_model,
+            AIAnalysisResult.is_deleted.is_(False),
+        )
+        .order_by(AIAnalysisResult.created_at.desc())
+        .limit(1)
+    )
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
 
+
+async def create_analysis(
+    db: AsyncSession,
+    analysis: AIAnalysisResult,
+) -> AIAnalysisResult:
+    db.add(analysis)
+    await db.commit()
+    await db.refresh(analysis)
+    return analysis
 
 # ===== [박유정] AI 예측 결과 목록 조회 =====
 # 진료기록 하나의 예측 결과 전체 (삭제 표시 제외, 최신순)

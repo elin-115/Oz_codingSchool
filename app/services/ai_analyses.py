@@ -1,26 +1,89 @@
+
 from fastapi import HTTPException, status
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.files import media_url_to_path
+from app.core.files import (
+    delete_media_file,
+    media_url_to_path,
+    save_heatmap_image,
+)
 from app.models import AIAnalysisResult
 from app.repositories import ai_analyses as ai_analysis_repository
 from app.services import medical_records as medical_record_service
 from worker import model as ai_model
 
-# AI 예측의 비즈니스 규칙을 담당한다. 진료기록이 있는지는 medical_record_service.get_record_or_404로 확인한다.
-# 모델 코드는 worker/model.py: ai_model.MODEL_NAME, ai_model.predict(image_path) -> PredictionResult
+# AI 예측의 비즈니스 규칙을 담당한다.
+# 진료기록 존재 여부는 medical_record_service.get_record_or_404로 확인한다.
+# 모델 코드는 worker/model.py의 ai_model.MODEL_NAME, ai_model.predict(), ai_model.make_heatmap()을 사용한다.
 
 
 # ===== [김도엽] AI 폐렴 예측 =====
-# 1) get_record_or_404로 진료기록 + X-Ray 이미지 조회
-# 2) 같은 진료기록 + 같은 모델(ai_model.MODEL_NAME) 결과가 있으면 추론 없이 그 결과를 돌려줌 (API에서 200)
-# 3) 이미지 기록이 없거나 파일이 없으면 404 "X-Ray 이미지 파일을 찾을 수 없습니다."
-#    경로: media_url_to_path(record.xray_images[0].image_url)
-# 4) predict는 CPU를 쓰는 일반 함수라 await run_in_threadpool(ai_model.predict, path)로 호출
-#    모델이 안 올라왔으면 predict가 ModelNotLoadedError를 냄 → 503 "AI 모델이 준비되지 않았습니다."
-# 5) AIAnalysisResult(record_id, is_pneumonia, confidence, heatmap_url=None, ai_model=ai_model.MODEL_NAME) 저장 (API에서 201)
-# 새로 예측했는지도 API가 알아야 상태 코드를 고를 수 있음 (예: (결과, 새로 만들었는지) 튜플로 반환)
+
+async def predict_record(
+    db: AsyncSession,
+    record_id: int,
+) -> tuple[AIAnalysisResult, bool]:
+    # 1. 진료기록 조회. 없으면 기존 서비스가 404 처리
+    record = await medical_record_service.get_record_or_404(db, record_id)
+
+    # 2. 동일 진료기록·모델의 기존 결과 확인
+    existing = await ai_analysis_repository.get_existing_result(
+        db,
+        record_id,
+        ai_model.MODEL_NAME,
+    )
+    if existing is not None:
+        return existing, False
+
+    # 3. X-Ray 이미지 기록 확인
+    if not record.xray_images:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="X-Ray 이미지 파일을 찾을 수 없습니다.",
+        )
+
+    # 4. 이미지 경로 및 실제 파일 확인
+    image_path = media_url_to_path(record.xray_images[0].image_url)
+    if image_path is None or not image_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="X-Ray 이미지 파일을 찾을 수 없습니다.",
+        )
+
+
+    # 5. AI 예측 및 히트맵 생성
+    try:
+        prediction = await run_in_threadpool(ai_model.predict, image_path)
+        heatmap = await run_in_threadpool(ai_model.make_heatmap, image_path)
+    except ai_model.ModelNotLoadedError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI 모델이 준비되지 않았습니다.",
+        ) from None
+
+    # 6. 히트맵 이미지 파일 저장
+    heatmap_url = await run_in_threadpool(save_heatmap_image, heatmap)
+
+    # 7. 예측 결과 저장
+    analysis = AIAnalysisResult(
+        record_id=record_id,
+        is_pneumonia=prediction.is_pneumonia,
+        confidence=prediction.confidence,
+        heatmap_url=heatmap_url,
+        ai_model=ai_model.MODEL_NAME,
+    )
+
+    try:
+        saved = await ai_analysis_repository.create_analysis(db, analysis)
+    except Exception:
+        try:
+            await db.rollback()
+        finally:
+            await run_in_threadpool(delete_media_file, heatmap_url)
+        raise
+
+    return saved, True
 
 
 # ===== [박유정] AI 예측 결과 목록 조회 =====

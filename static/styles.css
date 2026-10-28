@@ -258,6 +258,13 @@ th {
     border-radius: 4px;
 }
 
+.heatmap-thumb {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
 .predict-result {
     padding: 1rem;
     border-radius: 4px;
