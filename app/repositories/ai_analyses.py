@@ -13,3 +13,10 @@ from app.models import AIAnalysisResult
 
 # ===== [박유정] AI 예측 결과 목록 조회 =====
 # 진료기록 하나의 예측 결과 전체 (삭제 표시 제외, 최신순)
+async def get_analyses_by_record_id(db: AsyncSession, record_id: int) -> list[AIAnalysisResult]:
+    result = await db.execute(
+        select(AIAnalysisResult)
+        .where(AIAnalysisResult.record_id == record_id, AIAnalysisResult.is_deleted.is_(False))
+        .order_by(AIAnalysisResult.created_at.desc(), AIAnalysisResult.id.desc())
+    )
+    return list(result.scalars().all())

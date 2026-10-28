@@ -18,3 +18,8 @@ ai_analysis_router = APIRouter(prefix="/api/v1/medical-records", tags=["AI Analy
 
 # ===== [박유정] AI 예측 결과 목록 조회 GET /{record_id}/analyses =====
 # 응답: list[AIAnalysisResponse] (최신순)
+@ai_analysis_router.get("/{record_id}/analyses")
+async def get_record_analyses(record_id: int, user: StaffUser, db: DBSession) -> list[AIAnalysisResponse]:
+    # user: StaffUser (승인된 user만 열람 가능, 대기자는 403)
+    analyses = await ai_analysis_service.get_record_analyses(db, record_id)
+    return [AIAnalysisResponse.model_validate(analysis) for analysis in analyses]
