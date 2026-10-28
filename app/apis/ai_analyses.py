@@ -11,9 +11,24 @@ ai_analysis_router = APIRouter(prefix="/api/v1/medical-records", tags=["AI Analy
 
 
 # ===== [김도엽] AI 폐렴 예측 POST /{record_id}/predict =====
-# 새로 예측하면 201, 저장된 결과를 돌려주면 200
-# 상태 코드는 매개변수 response: Response를 받아 response.status_code = status.HTTP_200_OK 처럼 바꿈
-# 응답: AIAnalysisResponse.model_validate(결과)
+
+@ai_analysis_router.post(
+    "/{record_id}/predict",
+    response_model=AIAnalysisResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def predict_medical_record(
+    record_id: int,
+    response: Response,
+    db: DBSession,
+    user: StaffUser,
+) -> AIAnalysisResponse:
+    result, created = await ai_analysis_service.predict_record(db, record_id)
+
+    if not created:
+        response.status_code = status.HTTP_200_OK
+
+    return AIAnalysisResponse.model_validate(result)
 
 
 # ===== [박유정] AI 예측 결과 목록 조회 GET /{record_id}/analyses =====
