@@ -25,3 +25,8 @@ from worker import model as ai_model
 
 # ===== [박유정] AI 예측 결과 목록 조회 =====
 # 진료기록이 없으면 404 (get_record_or_404), 결과가 없으면 빈 목록 []
+async def get_record_analyses(db: AsyncSession, record_id: int) -> list[AIAnalysisResult]:
+    # 진료기록 없음 404 "진료 기록을 찾을 수 없습니다." 출력
+    await medical_record_service.get_record_or_404(db, record_id)
+    # 진료기록 있음(예측 결과 없음) 빈목록[] 그대로 출력
+    return await ai_analysis_repository.get_analyses_by_record_id(db, record_id)
