@@ -35,6 +35,7 @@ async def create_analysis(
     await db.refresh(analysis)
     return analysis
 
+
 # ===== [박유정] AI 예측 결과 목록 조회 =====
 # 진료기록 하나의 예측 결과 전체 (삭제 표시 제외, 최신순)
 async def get_analyses_by_record_id(db: AsyncSession, record_id: int) -> list[AIAnalysisResult]:

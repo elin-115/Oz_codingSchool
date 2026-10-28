@@ -11,12 +11,8 @@ ai_analysis_router = APIRouter(prefix="/api/v1/medical-records", tags=["AI Analy
 
 
 # ===== [김도엽] AI 폐렴 예측 POST /{record_id}/predict =====
-
-@ai_analysis_router.post(
-    "/{record_id}/predict",
-    response_model=AIAnalysisResponse,
-    status_code=status.HTTP_201_CREATED,
-)
+# 새로 예측하면 201, 같은 모델로 저장된 결과를 돌려주면 200 (response.status_code로 바꿈)
+@ai_analysis_router.post("/{record_id}/predict", status_code=status.HTTP_201_CREATED)
 async def predict_medical_record(
     record_id: int,
     response: Response,
