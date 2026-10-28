@@ -1,4 +1,3 @@
-
 from fastapi import HTTPException, status
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +18,6 @@ from worker import model as ai_model
 
 
 # ===== [김도엽] AI 폐렴 예측 =====
-
 async def predict_record(
     db: AsyncSession,
     record_id: int,
@@ -50,7 +48,6 @@ async def predict_record(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="X-Ray 이미지 파일을 찾을 수 없습니다.",
         )
-
 
     # 5. AI 예측 및 히트맵 생성
     try:
@@ -91,5 +88,5 @@ async def predict_record(
 async def get_record_analyses(db: AsyncSession, record_id: int) -> list[AIAnalysisResult]:
     # 진료기록 없음 404 "진료 기록을 찾을 수 없습니다." 출력
     await medical_record_service.get_record_or_404(db, record_id)
-    # 진료기록 있음(예측 결과 없음) 빈목록[] 그대로 출력
+    # 진료기록 있음(예측 결과 없음) 빈 목록 [] 그대로 출력
     return await ai_analysis_repository.get_analyses_by_record_id(db, record_id)
