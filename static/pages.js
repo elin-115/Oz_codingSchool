@@ -167,18 +167,24 @@ const pages = {
                 <table>
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>수행 일시</th>
                             <th>폐렴 여부</th>
                             <th>Confidence</th>
+                            <th>히트맵</th>
                             <th>사용 모델</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${analyses.map(a => `
                             <tr class="${a.is_pneumonia ? 'result-positive' : 'result-negative'}">
+                                <td>${a.id}</td>
                                 <td>${new Date(a.created_at).toLocaleString()}</td>
                                 <td><strong>${a.is_pneumonia ? 'Positive' : 'Negative'}</strong></td>
                                 <td>${a.confidence}%</td>
+                                <td>${a.heatmap_url
+                                    ? `<a href="${a.heatmap_url}" target="_blank" rel="noopener noreferrer"><img class="heatmap-thumb" src="${a.heatmap_url}" alt="AI 예측 히트맵"></a>`
+                                    : '없음'}</td>
                                 <td>${a.ai_model}</td>
                             </tr>
                         `).join('')}
