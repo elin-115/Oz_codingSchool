@@ -57,7 +57,7 @@ API 번호는 Day05(1~8)에 이어서 붙임
   "is_pneumonia": true,
   "confidence": 93.25,
   "heatmap_url": null,
-  "ai_model": "simple_cnn_v1",
+  "ai_model": "ensemble_3models_fold1_v1",
   "created_at": "2026-10-28T10:00:00"
 }
 ```
@@ -81,7 +81,7 @@ API 번호는 Day05(1~8)에 이어서 붙임
 worker/
 ├── __init__.py
 ├── model.py         # load_model(), predict(), MODEL_NAME
-└── models/          # 모델 파일(.pth) 넣는 곳. .gitignore로 커밋 안 됨 → 드라이브 공유
+└── models/          # 모델 파일(.pt) 넣는 곳. .gitignore로 커밋 안 됨 → 드라이브 공유
 ```
 
 - **불러오기**: 서버가 켜질 때 `load_model()`을 한 번 호출해 전역 변수에 저장. 요청마다 파일을 읽으면 3초 안에 응답하기 어려움
@@ -90,7 +90,17 @@ worker/
 - **전처리는 학습 때와 똑같이**: 크기·흑백/컬러·정규화가 다르면 결과가 틀어짐
 - **기준값**: 폐렴 확률이 기준값(기본 0.5) 이상이면 폐렴. Recall ≥ 0.90을 맞추도록 모델 비교 때 함께 정함
 
-**샘플 모델 (`model_state_dict.pth`)**
+**사용 모델 (김지연 3모델 앙상블, fold1)**
+
+| 항목 | 내용 |
+|---|---|
+| 구조 | EfficientNet-B0, ResNet50, DenseNet121 (torchvision, 마지막 층만 2개로 교체). `build_model()`이 구조를 만들고 `.pt`로 가중치를 채움 |
+| 입력 | 224×224, 3채널 |
+| 전처리 | 흑백으로 열기 → `letterbox`(비율 유지 224) → `crop_content`(검은 띠 제거 후 224로 늘리기) → `Grayscale(3)` → `ToTensor()` → ImageNet 정규화 |
+| 예측 | 모델마다 원본 + 좌우반전 폐렴 확률 평균 → 3개 평균 → 0.5 이상이면 폐렴 |
+| 출력 | 2개 값, `softmax` 후 **1번이 폐렴** 확률 |
+
+**샘플 모델 (`model_state_dict.pth`, 비교용)**
 
 | 항목 | 내용 |
 |---|---|
@@ -211,7 +221,7 @@ worker/
     "is_pneumonia": true,
     "confidence": 93.25,
     "heatmap_url": null,
-    "ai_model": "simple_cnn_v2",
+    "ai_model": "ensemble_3models_fold1_v2",
     "created_at": "2026-10-28T11:00:00"
   },
   {
@@ -220,7 +230,7 @@ worker/
     "is_pneumonia": true,
     "confidence": 88.1,
     "heatmap_url": null,
-    "ai_model": "simple_cnn_v1",
+    "ai_model": "ensemble_3models_fold1_v1",
     "created_at": "2026-10-28T10:00:00"
   }
 ]
@@ -259,15 +269,32 @@ worker/
 ### 결과 재사용 기준: 진료기록 + 모델 이름
 
 - 요구사항 "같은 모델을 사용하여 저장된 예측 결과가 있다면" → `record_id`와 `ai_model`이 같으면 재사용
-- 모델을 바꾸면 `MODEL_NAME`도 바꿔야 새로 예측함 (예: `simple_cnn_v1` → `simple_cnn_v2`). 이름만 그대로면 예전 결과가 계속 나옴
+- 모델을 바꾸면 `MODEL_NAME`도 바꿔야 새로 예측함 (예: `ensemble_3models_fold1_v1` → `ensemble_3models_v2`). 이름만 그대로면 예전 결과가 계속 나옴
 
 ### confidence: 예측한 쪽의 확률
 
 - 폐렴이면 폐렴 확률, 정상이면 정상 확률을 % 로 저장 (1-3)
 
+### 모델: 3모델 앙상블 중 fold1만 사용
+
+- **요구사항**: 모든 API 3초 이내 응답 (NFR-PRED-002)
+- **결정**: 3모델 × 5 fold(15개) 대신 **3모델 × fold1(3개)** 사용, `MODEL_NAME = "ensemble_3models_fold1_v1"`
+- **이유** (CPU, test 사진 1장 기준 측정)
+
+| 구성 | 파일 | 예측 1장 | 최종 제출(0.9583)과 다른 장수 (test 624장) |
+|---|---|---|---|
+| 3모델 × 5 fold | 15개, 663MB | 평균 4.8초, 최대 6.5초 ❌ | 0 |
+| **3모델 × fold1** | **3개, 133MB** | **평균 0.89초, 최대 1.09초** ✅ | **3** |
+| ResNet50 + DenseNet121 × 5 fold | 10개, 585MB | 약 1.5초 | 3 |
+
+- EfficientNet-B0가 CPU에서 유독 느림 (1개당 0.66초, ResNet50 0.12초, DenseNet121 0.17초)
+- 3장이 모두 틀려도 정확도 0.953 이상이라 다른 후보(0.9503 이하)보다 높음
+- fold 수는 `FOLDS` 상수 하나로 바꿀 수 있게 작성 (속도 여유가 생기면 `FOLDS = 5`, 이름은 `_v2`로)
+
 ### 모델 파일: 깃에 올리지 않음
 
-- `*.pth`는 `.gitignore`에 있어 커밋되지 않음. 드라이브로 공유하고 각자 `worker/models/`에 복사
+- `*.pt`, `*.pth`는 `.gitignore`에 있어 커밋되지 않음. 드라이브로 공유하고 각자 `worker/models/`에 복사
+- 필요한 파일: `best_model_efficientnet_b0_fold1.pt`, `best_model_resnet50_fold1.pt`, `best_model_densenet121_fold1.pt`
 
 ---
 
@@ -276,7 +303,7 @@ worker/
 ```
 worker/
 ├── model.py                     # [김지연] load_model, predict, MODEL_NAME
-└── models/                      # 모델 파일(.pth), 커밋 안 됨
+└── models/                      # 모델 파일(.pt), 커밋 안 됨
 app/
 ├── main.py                      # + lifespan에서 load_model(), ai_analysis_router 등록
 ├── core/files.py                # + media_url_to_path
@@ -309,14 +336,19 @@ static/pages.js                  # [이명석] 예측 결과 표에 ID·히트�
 | 모델 | 담당 | 리더보드 | 검증 Recall | 검증 Accuracy | 입력 크기·전처리 | 파일 크기 |
 |---|---|---|---|---|---|---|
 | 샘플 SimpleCNN | - | 없음 (같은 구조 baseline 0.7804) | - | - | 흑백 128, 리사이즈, 정규화 없음 | 280KB |
-| 3모델 앙상블 (EfficientNet-B0 + ResNet50 + DenseNet121, 5-fold 평균) | 김지연 | 0.9583 | 0.9675 | 0.9724 | 224, letterbox → 검은 띠 제거 후 늘리기 → 3채널 → ImageNet 정규화 | 약 695MB (15개) |
-| | 김도엽 | | | | | |
-| | 박유정 | | | | | |
-| | 이명석 | | | | | |
+| **3모델 앙상블** (EfficientNet-B0 + ResNet50 + DenseNet121, 5-fold 평균, 좌우반전 TTA) | 김지연 | **0.9583** | 0.9675 | 0.9724 | 224, letterbox → 검은 띠 제거 후 늘리기 → 3채널 → ImageNet 정규화 | 663MB (15개) |
+| ResNet50 + ViT-B/16 (soft voting) | 이명석 | 0.9503 | 없음 (검증셋 없음) | 없음 (학습 정확도만) | ResNet50 128 / ViT 224, 3채널 → ImageNet 정규화 | 저장 안 됨 |
+| DenseNet121 scratch 5-fold + 스케일 TTA, 기준값 0.335 | 김도엽 | 0.9295 | 0.9897 | 0.9868 | 320, 3채널 → 데이터셋 평균·표준편차 정규화 | 136MB (5개) |
+| ResNet50 전이학습 (Keras) | 박유정 | 0.9151 | 0.9871 | 0.9713 | 224 RGB → `preprocess_input` | 98MB (1개) |
 
 - 전처리는 각자 노트북의 `transforms.Compose([...])`를 그대로 옮김 (서버도 똑같이 해야 함)
 - 검증 점수는 에포크를 검증 점수로 골라 리더보드보다 높게 나오는 편이라 비교는 리더보드 기준
-- 결정: (사용할 모델과 이유)
+- 무작위로 나눈 검증(Stratified K-Fold, 홀드아웃)은 옆 번호 사진(같은 환자)이 학습·검증에 섞여 점수가 높게 나옴. 김지연 검증은 10장 묶음으로 나눠 이 누수를 줄임
+- **결정: 김지연 3모델 앙상블, 단 fold1 3개만 사용** (팀 논의 10/28)
+  1. 리더보드(모두 같은 test 624장 공식 점수) 최고
+  2. Recall 0.9675로 기준(0.90) 통과
+  3. 모델 파일·전처리 코드가 모두 남아 있음 (김도엽·박유정 모델도 파일은 있지만 점수가 낮고, 박유정 모델은 Keras라 TensorFlow가 따로 필요)
+  4. 15개를 모두 쓰면 3초를 넘어 fold1만 사용 (3장 "모델: fold1만 사용")
 
 ---
 
