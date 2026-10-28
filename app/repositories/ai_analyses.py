@@ -17,6 +17,7 @@ async def get_existing_result(
         .where(
             AIAnalysisResult.record_id == record_id,
             AIAnalysisResult.ai_model == ai_model,
+            AIAnalysisResult.is_deleted.is_(False),
         )
         .order_by(AIAnalysisResult.created_at.desc())
         .limit(1)
