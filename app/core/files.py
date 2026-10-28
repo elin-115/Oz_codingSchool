@@ -22,3 +22,10 @@ def delete_media_file(url: str) -> None:
     if not url.startswith(f"{MEDIA_URL}/"):     # /media/로 시작하지 않는 이상한 주소면 종료
         return
     (MEDIA_DIR / url.removeprefix(f"{MEDIA_URL}/")).unlink(missing_ok=True)
+
+
+def media_url_to_path(url: str) -> Path | None:
+    # /media/xray/abc.png → 실제 파일 경로(media/xray/abc.png). /media/로 시작하지 않으면 None
+    if not url.startswith(f"{MEDIA_URL}/"):
+        return None
+    return MEDIA_DIR / url.removeprefix(f"{MEDIA_URL}/")
