@@ -26,6 +26,12 @@ uv run alembic downgrade -1
 ```
 
 
+## 📋 팀 작업판
+
+Stage 1~6 단계별로 누가 무엇을 했는지, 세부 내역과 PR 번호를 한 페이지로 정리함.
+
+👉 [3조 폐렴 백오피스 작업판](https://claude.ai/artifact/XAdRyoYF6AgLyK2kV5DR8Z)
+
 ## 📚 과제 문서
 
 | Day | 날짜 | 문서 | 내용 |
