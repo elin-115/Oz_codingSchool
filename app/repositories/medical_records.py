@@ -14,6 +14,12 @@ async def exists_chart_number(db: AsyncSession, chart_number: str) -> bool:
     return result.first() is not None
 
 
+async def get_chart_numbers_by_prefix(db: AsyncSession, prefix: str) -> list[str]:
+    # 자동 발급용: 오늘 날짜로 시작하는 차트 번호 전부 (삭제 표시된 기록도 포함, unique는 삭제 기록에도 걸리므로)
+    result = await db.execute(select(MedicalRecord.chart_number).where(MedicalRecord.chart_number.like(f"{prefix}%")))
+    return list(result.scalars().all())
+
+
 async def create_medical_record(db: AsyncSession, record: MedicalRecord) -> MedicalRecord:
     # record.xray_images에 담긴 X-Ray 이미지도 함께 저장됨 (relationship)
     db.add(record)

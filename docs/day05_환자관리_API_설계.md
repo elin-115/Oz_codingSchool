@@ -446,7 +446,7 @@ GET /api/v1/patients?name=홍&gender=male&min_age=30&max_age=60
 | 파라미터명 | 타입 | 필수 (Y / N) | 설명 |
 |---|---|---|---|
 | patient_id | integer | Y | 환자 고유 ID |
-| chart_number | string | Y | 진료 차트 넘버 (1-50자, 중복 불가) |
+| chart_number | string | N | 진료 차트 넘버 (1-50자, 중복 불가), 비우면 자동 발급 |
 | symptoms | string | Y | 진료된 증상 |
 | xray_image | file | Y | 흉부 X-Ray 이미지 (png, jpeg, 최대 10MB) |
 
