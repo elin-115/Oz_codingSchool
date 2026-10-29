@@ -66,7 +66,7 @@ API 주소와 요청·응답 필드는 템플릿 프론트엔드(`static/apis.js
 | name | 환자 이름, 2-30자 (DB `String(30)`) |
 | age | 0-150 정수 |
 | gender | `male` / `female` (프론트 `patient-create.html`의 `<option value>`와 같음) |
-| phone_number | 하이픈 없이 `01`로 시작하는 10-11자리 숫자 (Day04 `PhoneType` 재사용) |
+| phone_number | 하이픈 없이 `010`으로 시작하는 11자리 숫자 (Day04 `PhoneType` 재사용, 10/29 변경) |
 | chart_number | 진료 차트 넘버, 1-50자, **중복 불가** (DB `unique`) |
 | symptoms | 진료된 증상, 1자 이상 |
 | xray_image | 이미지 파일 (`image/png`, `image/jpeg`), 최대 10MB (이유는 3장) |
@@ -446,7 +446,7 @@ GET /api/v1/patients?name=홍&gender=male&min_age=30&max_age=60
 | 파라미터명 | 타입 | 필수 (Y / N) | 설명 |
 |---|---|---|---|
 | patient_id | integer | Y | 환자 고유 ID |
-| chart_number | string | Y | 진료 차트 넘버 (1-50자, 중복 불가) |
+| chart_number | string | N | 진료 차트 넘버 (1-50자, 중복 불가), 비우면 자동 발급 |
 | symptoms | string | Y | 진료된 증상 |
 | xray_image | file | Y | 흉부 X-Ray 이미지 (png, jpeg, 최대 10MB) |
 

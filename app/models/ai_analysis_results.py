@@ -24,7 +24,8 @@ class AIAnalysisResult(Base, TimestampMixin, SoftDeleteMixin):
     confidence: Mapped[Decimal] = mapped_column(
         Numeric(5, 2), CheckConstraint("confidence >= 0 AND confidence <= 100")
     )
-    heatmap_url: Mapped[str] = mapped_column(String(255))
+    # 히트맵은 요구사항상 선택사항이라 비워둘 수 있게 함 (Day06 설계 3장)
+    heatmap_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
     ai_model: Mapped[str] = mapped_column(String(50))
 
     medical_record: Mapped["MedicalRecord"] = relationship(back_populates="ai_analysis_results")

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,18 +15,31 @@ from app.services import patients as patient_service
 # 업로드할 수 있는 이미지 종류(Content-Type)와 저장할 확장자
 XRAY_EXTENSIONS = {"image/png": ".png", "image/jpeg": ".jpg"}
 MAX_XRAY_SIZE = 10 * 1024 * 1024  # 10MB
+KST = timezone(timedelta(hours=9))  # 차트 번호 날짜는 한국 날짜 기준 (UTC면 오전 0~9시에 전날 번호가 나옴)
+
+
+async def make_chart_number(db: AsyncSession) -> str:
+    # 비워두면 "CH-오늘날짜-순번(4자리)"로 발급. 예: CH-20261029-0001
+    prefix = f"CH-{datetime.now(KST):%Y%m%d}-"
+    used = await medical_record_repository.get_chart_numbers_by_prefix(db, prefix)
+    # 직접 입력한 "CH-20261029-메모" 같은 번호는 건너뛰고, 숫자 순번 중 가장 큰 값 + 1
+    numbers = [int(n[len(prefix):]) for n in used if n[len(prefix):].isdigit()]
+    return f"{prefix}{max(numbers, default=0) + 1:04d}"
 
 
 async def create_medical_record(
     db: AsyncSession,
     user: User,
     patient_id: int,
-    chart_number: str,
+    chart_number: str | None,
     symptoms: str,
     xray_image: UploadFile,
 ) -> MedicalRecord:
     await patient_service.get_patient_or_404(db, patient_id)
-    if await medical_record_repository.exists_chart_number(db, chart_number):
+    chart_number = (chart_number or "").strip()
+    if not chart_number:
+        chart_number = await make_chart_number(db)
+    elif await medical_record_repository.exists_chart_number(db, chart_number):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 등록된 진료 차트 넘버입니다.")
 
     # 파일 확장자 이름은 바꿀 수 있으므로, 브라우저가 알려준 파일 종류(Content-Type)로 확인

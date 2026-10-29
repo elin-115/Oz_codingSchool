@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict
 
 from app.models import MedicalRecord
+from app.schemas.common import UTCDatetime
 
 # ===== 공통 응답 =====
 
@@ -14,7 +13,7 @@ class MedicalRecordListResponse(BaseModel):
     id: int
     chart_number: str
     symptoms: str  # 100자 초과 시 앞 100자 + "…" (아래 [박유정] 섹션에서 처리)
-    created_at: datetime
+    created_at: UTCDatetime
 
 
 class MedicalRecordResponse(BaseModel):
@@ -24,7 +23,7 @@ class MedicalRecordResponse(BaseModel):
     chart_number: str
     symptoms: str
     xray_image_url: str | None
-    created_at: datetime
+    created_at: UTCDatetime
 
     @classmethod
     def from_record(cls, record: MedicalRecord) -> "MedicalRecordResponse":

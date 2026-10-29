@@ -9,7 +9,7 @@ from app.core.enums import Department, Gender, UserRole
 # ===== 공통 검증 =====
 
 EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-PHONE_PATTERN = re.compile(r"^01[0-9]{8,9}$")
+PHONE_PATTERN = re.compile(r"^010[0-9]{8}$")
 
 
 def validate_email(value: str) -> str:
@@ -29,9 +29,10 @@ def validate_password(value: str) -> str:
 
 
 def validate_phone(value: str) -> str:
-    # 프론트에서 숫자만 보내므로 하이픈 없이 01로 시작하는 10-11자리만 허용
+    # 프론트에서 숫자만 보내므로 하이픈 없이 010으로 시작하는 11자리만 허용
+    # (2G 종료·01X → 010 자동연결 종료로 개인 휴대폰 번호는 010 + 11자리로 일원화됨)
     if not PHONE_PATTERN.match(value):
-        raise ValueError("휴대폰 번호는 하이픈 없이 01로 시작하는 10-11자리 숫자여야 합니다.")
+        raise ValueError("휴대폰 번호는 하이픈 없이 010으로 시작하는 11자리 숫자여야 합니다.")
     return value
 
 
