@@ -54,4 +54,4 @@ uv run pytest -q
 - 2026-10-28 `uv run pytest -q tests/test_ai_analyses.py`: 9 passed
 - 2026-10-28 `uv run pytest -q`: 12 passed
 - 기존 `app/core/db/databases.py`의 SQLAlchemy `declarative_base()` 사용 관련 deprecation 경고 1건이 출력되며, 테스트 실패는 없음
-- 2026-10-29 화면 수동 확인 (김지연, 실제 모델 3개, 폐렴 X-Ray): 첫 예측 `201` → 재예측 `200`(같은 결과 ID), 히트맵 표시, 환자 삭제 시 DB 결과·X-Ray·히트맵 파일 모두 정리됨. 팀원별 결과는 [Day06 작업 내역](day06_작업내역.md) 참고
+- 2026-10-29 화면 수동 확인 (김지연, 실제 모델 3개, 폐렴 X-Ray): 첫 예측 `201` → 재예측 `200`(같은 결과 ID), 히트맵 표시, 환자 삭제 시 DB 결과·X-Ray·히트맵 파일 모두 정리됨. 팀원별 결과는 [Day06 통합 테스트 결과](day06_통합테스트_결과.md) 참고
