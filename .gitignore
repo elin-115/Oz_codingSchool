@@ -28,3 +28,6 @@ envs/
 
 # Uploaded files (X-Ray images)
 media/
+
+# macOS
+.DS_Store

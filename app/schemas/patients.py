@@ -1,9 +1,9 @@
-from datetime import datetime
 from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from app.core.enums import Gender
+from app.schemas.common import UTCDatetime
 from app.schemas.users import PhoneType
 
 # ===== 공통 검증 =====
@@ -37,8 +37,8 @@ class PatientResponse(BaseModel):
     gender: Gender
     # DB 컬럼은 ERD대로 phone, 프론트(static/pages.js)는 phone_number로 읽으므로 이름만 바꿔서 응답
     phone_number: str = Field(validation_alias="phone")
-    created_at: datetime
-    updated_at: datetime | None
+    created_at: UTCDatetime
+    updated_at: UTCDatetime | None
 
 
 # ===== [김도엽] 환자 등록 / 환자 목록 조회 =====

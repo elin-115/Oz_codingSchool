@@ -118,7 +118,7 @@ def test_predict_then_list_and_reuse_saved_result(api_client, prediction_setup):
         "confidence": 93.25,
         "heatmap_url": "/media/heatmap/test.png",
         "ai_model": ai_model.MODEL_NAME,
-        "created_at": "2026-10-28T10:00:00",
+        "created_at": "2026-10-28T10:00:00Z",  # 응답은 UTC 표시(Z)를 붙여 내보냄
     }
     prediction_setup.predict.assert_called_once_with(prediction_setup.image_path)
     prediction_setup.make_heatmap.assert_called_once_with(prediction_setup.image_path)

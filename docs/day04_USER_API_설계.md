@@ -105,7 +105,7 @@ API 주소와 요청 형식은 템플릿 프론트엔드(`static/apis.js`)가 �
 | name | 2-20자 |
 | department | `developer`(개발) / `medical team`(의료) / `researcher`(연구) |
 | gender | `male` / `female` |
-| phone_number | 하이픈 없이 `01`로 시작하는 10-11자리 숫자, 중복 불가 |
+| phone_number | 하이픈 없이 `010`으로 시작하는 11자리 숫자, 중복 불가 (10/29 변경) |
 
 > department·gender 값은 프론트 `signup.html`의 `<option value>`와 같다.
 
