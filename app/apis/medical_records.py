@@ -18,9 +18,10 @@ async def create_medical_record(
     db: DBSession,
     user: MedicalUser,          # 등록은 의료진만
     patient_id: Annotated[int, Form()],
-    chart_number: Annotated[str, Form(min_length=1, max_length=50)],
     symptoms: Annotated[str, Form(min_length=1)],
     xray_image: UploadFile,     # Swagger에서 "파일 선택" 버튼
+    # 선택 입력: 비우면(빈 문자열 포함) 서버가 자동 발급. 기본값이 있어서 맨 뒤에 둠
+    chart_number: Annotated[str | None, Form(max_length=50)] = None,
 ) -> MedicalRecordResponse:
     record = await medical_record_service.create_medical_record(
         db, user, patient_id, chart_number, symptoms, xray_image
