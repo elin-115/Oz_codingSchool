@@ -66,7 +66,7 @@ API 주소와 요청·응답 필드는 템플릿 프론트엔드(`static/apis.js
 | name | 환자 이름, 2-30자 (DB `String(30)`) |
 | age | 0-150 정수 |
 | gender | `male` / `female` (프론트 `patient-create.html`의 `<option value>`와 같음) |
-| phone_number | 하이픈 없이 `01`로 시작하는 10-11자리 숫자 (Day04 `PhoneType` 재사용) |
+| phone_number | 하이픈 없이 `010`으로 시작하는 11자리 숫자 (Day04 `PhoneType` 재사용, 10/29 변경) |
 | chart_number | 진료 차트 넘버, 1-50자, **중복 불가** (DB `unique`) |
 | symptoms | 진료된 증상, 1자 이상 |
 | xray_image | 이미지 파일 (`image/png`, `image/jpeg`), 최대 10MB (이유는 3장) |

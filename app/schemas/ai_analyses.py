@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict
+
+from app.schemas.common import UTCDatetime
 
 # ===== 공통 응답 =====
 
@@ -15,4 +15,4 @@ class AIAnalysisResponse(BaseModel):
     confidence: float  # DB는 Decimal이라 그대로 두면 JSON에 문자열로 나가므로 float로 받음
     heatmap_url: str | None
     ai_model: str
-    created_at: datetime
+    created_at: UTCDatetime
