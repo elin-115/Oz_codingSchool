@@ -1,0 +1,37 @@
+# 환경 정보
+.env
+.env.*
+!.env.example
+
+# 가상 환경, 파이썬 캐시
+**/.venv
+**/__pycache__
+**/*.py[cod]
+
+# 라이브러리, 도구 캐시
+.mypy_cache
+.pytest_cache
+.ruff_cache
+
+# 도커 관련 설정
+**/Dockerfile*
+**/.dockerignore
+docker-compose*.yml
+compose*.yml
+
+# 문서
+docs
+**/README.md
+
+# IDE, OS, git
+.vscode
+.idea
+**/.DS_Store
+.git
+.gitignore
+
+# 실행에 불필요
+tests
+
+# 업로드 파일
+media
