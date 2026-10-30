@@ -11,7 +11,8 @@
 | `pyproject.toml`, `uv.lock` (torch CPU 전용) | 김지연 | #62 |
 | `.dockerignore` (루트) | 박유정 | #64 |
 | `docker-compose.yml` - fastapi 서비스, Dockerfile 실행 명령 | 이명석 | #63 |
-| `docker-compose.yml` - mysql 서비스 + 연결 | 김도엽 | <!-- TODO --> |
+| `docker-compose.yml` - mysql 서비스 + 연결 | 김도엽 | #65 |
+| `docker-compose.yml` - 켤 때 alembic 자동 적용, `--no-dev` | 김지연 | #66 |
 
 ## 🐳 과제 1. Dockerfile + .dockerignore
 
@@ -84,20 +85,23 @@ docker run --rm -p 8000:8000 --env-file .env -v "$PWD/worker/models:/app/worker/
 
 ## 🧩 과제 2. docker-compose.yml
 
-<!-- TODO: 명석님(fastapi), 도엽님(mysql) PR 머지 후 정리 -->
-
 ### 서비스 구성
 
-| 서비스 | 설정 | 내용 |
-|---|---|---|
-| fastapi | build | `app/Dockerfile`로 이미지 빌드 |
-| fastapi | volumes | 로컬 프로젝트 → 컨테이너 `/app` |
-| fastapi | command | `--reload`로 코드 수정 즉시 반영 |
-| fastapi | env_file | |
-| fastapi | depends_on | |
-| mysql | image | `mysql:8.0` |
-| mysql | volumes | |
-| mysql | healthcheck | |
+| 서비스 | 설정 | 내용 | 담당 |
+|---|---|---|---|
+| fastapi | build | `app/Dockerfile`로 이미지 빌드 (context는 루트) | 이명석 |
+| fastapi | volumes | `./app`, `./alembic`, `./worker`, `./static`, `./media`를 폴더별로 `/app` 아래에 연결 | 이명석, 김지연(alembic) |
+| fastapi | volumes | `venv_volume:/app/.venv`: 로컬 `.venv`가 컨테이너 걸 덮어쓰지 않게 | 이명석 |
+| fastapi | command | `alembic upgrade head` → `uvicorn ... --reload` (둘 다 `--no-dev`) | 이명석, 김지연(alembic) |
+| fastapi | healthcheck | python으로 `/healthcheck` 호출 (slim 이미지엔 curl 없음) | 이명석 |
+| fastapi | env_file / environment | `.env`를 읽고 `DB_HOST: mysql`, `DB_PORT: 3306`만 덮어씀 → 로컬 `.env` 그대로 사용 | 김도엽 |
+| fastapi | depends_on | `mysql: condition: service_healthy` → mysql 준비 후 시작 | 김도엽 |
+| mysql | image / environment | `mysql:8.0`, 비밀번호는 `${DB_PASSWORD:?}`로 `.env`에서만 (없으면 바로 에러) | 김도엽 |
+| mysql | volumes | `mysql_volume`: 컨테이너를 지워도 데이터 유지 | 김도엽 |
+| mysql | healthcheck | `mysqladmin ping` (비밀번호는 `$$`로 컨테이너 안 변수 사용) | 김도엽 |
+
+- 마운트 경로: 처음 템플릿은 `./app:/app`이라 컨테이너 `/app` 바로 아래에 `main.py`가 놓여 `app.main`을 못 찾음 → 폴더별로 `/app/app`처럼 연결 (#63)
+- `.dockerignore`는 빌드할 때만 적용돼서, 볼륨으로 연결하는 로컬 `.venv`는 따로 볼륨을 지정해 막음 (#63)
 
 ### 실행 화면
 
@@ -105,7 +109,23 @@ docker run --rm -p 8000:8000 --env-file .env -v "$PWD/worker/models:/app/worker/
 docker compose up --build
 ```
 
-<!-- TODO: 과제 2 캡처 (compose 빌드·실행, 두 컨테이너 실행 중, --reload 반영 확인) -->
+![docker compose up](images/day08/05_compose_up.png)
+
+두 컨테이너 실행 중 (모두 healthy), fastapi가 켜질 때 alembic 실행 후 서버 시작
+
+```bash
+docker compose ps
+docker compose logs fastapi
+```
+
+![docker compose ps](images/day08/06_compose_ps.png)
+
+- 이미 최신인 DB라 alembic은 확인만 하고 넘어감. 새 DB에서는 마이그레이션 3개가 자동 적용되는 것 확인
+- 기존 로컬 MySQL 볼륨을 그대로 이어 써서 데이터(회원 5명, 환자 3명) 유지
+
+로컬에서 코드를 고치면 `--reload`로 컨테이너 안 서버가 바로 재시작됨
+
+![--reload](images/day08/07_compose_reload.png)
 
 ## 💡 만난 문제
 
@@ -117,3 +137,6 @@ docker compose up --build
 | 컨테이너 켤 때마다 패키지 재설치 | 로컬 `.venv`가 이미지에 복사돼 컨테이너 `.venv`를 덮어씀 | `.dockerignore`로 제외 (#64), compose에선 `.venv` 전용 볼륨 (#63) |
 | 이미지 안에 `.env`가 들어 있었음 | `.dockerignore`가 없어서 루트 파일이 전부 복사됨 | `.dockerignore`로 제외 후 다시 빌드 (#64). 이미지를 외부에 올린 적은 없음 |
 | `.dockerignore`를 `app/`에 두면 적용 안 됨 | `.dockerignore`는 빌드 context(루트) 기준으로 읽힘 | 루트에 둠 (#64) |
+| compose에서 `app.main`을 못 찾음 (템플릿) | `./app:/app` 마운트로 폴더 구조가 한 단계 사라짐 | 폴더별로 `/app/app`처럼 마운트 (#63) |
+| 새 MySQL로 띄우면 API 500 (`Table 'ai_health.users' doesn't exist`) | 앱이 테이블을 자동 생성하지 않고 alembic으로 관리 | 켤 때 `alembic upgrade head` 자동 실행 (#66) |
+| 켤 때마다 `Installed 5 packages` | 빌드는 `--no-dev`인데 `uv run`이 dev 패키지를 추가 설치 | `uv run --no-dev` (#66, 명석님 커밋이 #63 머지 직후라 빠졌던 것 반영) |
