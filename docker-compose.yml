@@ -3,40 +3,53 @@ services:
     build:
       context: .
       dockerfile: app/Dockerfile
-    entrypoint: sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    working_dir: /app
+    # 켤 때마다 alembic으로 테이블을 최신 상태로 맞춘 뒤 서버 실행 (이미 최신이면 바로 넘어감)
+    command: ["sh", "-c", "uv run --no-dev alembic upgrade head && uv run --no-dev uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
     ports:
       - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
     volumes:
-      - ./app:/app
-      - static_volume:/app/static
-      - media_volume:/app/media
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./worker:/app/worker
+      - ./static:/app/static
+      - ./media:/app/media
+      - venv_volume:/app/.venv
+    depends_on:
+      mysql:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/healthcheck || exit 1"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthcheck')"]
       interval: 5s
       timeout: 5s
       retries: 3
-    depends_on:
-      - mysql
 
   mysql:
     image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: ${DB_NAME:-ai_health}
+      MYSQL_USER: ${DB_USER:-ozcoding}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    ports:
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - mysql_volume:/var/lib/mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_PORT: ${DB_PORT}
-    ports:
-      - "${DB_PORT}:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 5
-
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
+  venv_volume:
   mysql_volume:
-  static_volume:
-  media_volume:
