@@ -7,18 +7,18 @@
 
 AI 웹 서비스(폐렴 환자 관리 백오피스)를 만든 과정을 10단계로 나누고, 단계마다 우리 팀이 어떻게 진행했는지 돌아보며 정리함.
 
-| 단계 | 진행 | 산출물 |
-|---|---|---|
-| 1. Team Rule 정의 | ✅ Day01 | [팀 규칙](docs/day01_team_rules.md) |
-| 2. 사용자 요구사항 정의 | ✅ Day04~06 (제공된 요구사항 분석) | API 설계 문서의 요구사항 ID 표 |
-| 3. API 명세서 작성 | ✅ Day04~06 | [User API](docs/day04_USER_API_설계.md), [환자 관리 API](docs/day05_환자관리_API_설계.md), [AI 예측 API](docs/day06_AI예측_API_설계.md) |
-| 4. Git & GitHub Branch 전략 | ✅ Day01~02 | [Git Branch 전략](docs/day02_git_branch_전략.md) |
-| 5. 프로젝트 세팅 | ✅ Day01~03 | [프로젝트 뜯어보기](docs/day03_프로젝트_뜯어보기.md), [DB 마이그레이션](docs/day03_db_migration.md) |
-| 6. API·AI 워커 코드 작성과 병합 | ✅ Day02~06 (PR #4~#57) | API 20개, `worker/model.py` |
-| 7. 아키텍처 설계 및 적용 | ✅ Day03~07 | 레이어드 아키텍처, [앱 실행 화면](docs/day07_앱_실행화면.md) |
-| 8. 도커 인프라 파일 작성 | ✅ Day08 (PR #61~#67) | `app/Dockerfile`, `.dockerignore`, `docker-compose.yml`, [도커 실행 화면](docs/day08_도커_실행화면.md) |
-| 9. AWS 배포 | ⏳ 진행 예정 | - |
-| 10. QA 진행 | ✅ 기능별 통합 테스트 (Day04~06) / ⏳ 배포 후 QA 예정 | [통합 테스트 시나리오](docs/day05_통합테스트_시나리오.md), [통합 테스트 결과](docs/day06_통합테스트_결과.md) |
+| 번호 | 단계 | 진행 | 산출물 |
+|---|---|---|---|
+| 1 | Team Rule 정의 | ✅ Day01 | [팀 규칙](docs/day01_team_rules.md) |
+| 2 | 사용자 요구사항 정의 | ✅ Day04~06 (제공된 요구사항 분석) | API 설계 문서의 요구사항 ID 표 |
+| 3 | API 명세서 작성 | ✅ Day04~06 | [User API](docs/day04_USER_API_설계.md), [환자 관리 API](docs/day05_환자관리_API_설계.md), [AI 예측 API](docs/day06_AI예측_API_설계.md) |
+| 4 | Git & GitHub Branch 전략 | ✅ Day01~02 | [Git Branch 전략](docs/day02_git_branch_전략.md) |
+| 5 | 프로젝트 세팅 | ✅ Day01~03 | [프로젝트 뜯어보기](docs/day03_프로젝트_뜯어보기.md), [DB 마이그레이션](docs/day03_db_migration.md) |
+| 6 | API·AI 워커 코드 작성과 병합 | ✅ Day02~06 (PR #4~#57) | API 20개, `worker/model.py` |
+| 7 | 아키텍처 설계 및 적용 | ✅ Day03~07 | 레이어드 아키텍처, [앱 실행 화면](docs/day07_앱_실행화면.md) |
+| 8 | 도커 인프라 파일 작성 | ✅ Day08 (PR #61~#67) | `app/Dockerfile`, `.dockerignore`, `docker-compose.yml`, [도커 실행 화면](docs/day08_도커_실행화면.md) |
+| 9 | AWS 배포 | ⏳ 진행 예정 | - |
+| 10 | QA 진행 | ✅ 기능별 통합 테스트 (Day04~06) / ⏳ 배포 후 QA 예정 | [통합 테스트 시나리오](docs/day05_통합테스트_시나리오.md), [통합 테스트 결과](docs/day06_통합테스트_결과.md) |
 
 ### 1. Team Rule 정의
 
