@@ -2,9 +2,6 @@
 
 > 참고: [AWS 계정 생성 - AWS 계정 관리](https://docs.aws.amazon.com/ko_kr/accounts/latest/reference/manage-acct-creating.html)
 
-- 담당: 김지연
-- 날짜: 2026-11-02
-
 ## ✅ 진행 순서
 
 - [x] AWS 가입 (이메일, 계정 이름 `oz-Backoffice-3team`)
