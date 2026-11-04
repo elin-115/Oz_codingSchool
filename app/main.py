@@ -1,5 +1,4 @@
 import os
-from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -12,18 +11,10 @@ from app.apis.medical_records import medical_record_router
 from app.apis.patients import patient_router
 from app.apis.practice_apis import practice_router
 from app.apis.users import user_router
-from worker.model import load_model
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # 서버가 켜질 때 AI 모델을 한 번만 메모리에 올림 (요청마다 불러오면 3초 응답을 지키기 어려움)
-    load_model()
-    yield
 
 
 app = FastAPI(
-    lifespan=lifespan,
     title="폐렴 환자 관리 백오피스",
     # 마크다운은 4칸 이상 들여쓰면 코드 블록이 되므로 description 내용은 들여쓰지 않음
     description="""
