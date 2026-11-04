@@ -10,12 +10,19 @@ from app.core.files import (
     delete_media_file,
     media_url_to_path,
 )
+from app.core.predict_lock import (
+    acquire_predict_lock,
+    release_predict_lock,
+)
 from app.core.redis_client import redis_client
 from app.models import AIAnalysisResult
 from app.repositories import ai_analyses as ai_analysis_repository
 from app.services import medical_records as medical_record_service
 
 from worker.task_contract import (
+    ERROR_IMAGE_NOT_FOUND,
+    ERROR_MODEL_NOT_READY,
+    ERROR_PREDICT_FAILED,
     MODEL_NAME,
     QUEUE_NAME,
     RESULT_TIMEOUT,
@@ -60,8 +67,13 @@ async def predict_record(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="X-Ray 이미지 파일을 찾을 수 없습니다.",
         )
-
-    # 5. Worker에 전달할 작업 생성
+    # [추가] 5. 동일 진료기록의 중복 예측 방지 Lock
+    if not await acquire_predict_lock(record_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="이미 AI 예측이 진행 중입니다.",
+        )
+    # 동일 진료기록의 중복 예측 방지 Lock
     task_id = str(uuid4())
     channel = result_channel(task_id)
 
@@ -122,17 +134,22 @@ async def predict_record(
                 detail="AI 워커 결과의 작업 ID가 일치하지 않습니다.",
             )
 
-        # 10. Worker 오류 처리
+         # 10. Worker 오류 처리
         if result.get("status") != "success":
             error_message = result.get(
                 "error",
                 "AI 예측 처리 중 오류가 발생했습니다.",
             )
 
-            error_status = (
-                status.HTTP_404_NOT_FOUND
-                if "X-Ray 이미지" in error_message
-                else status.HTTP_500_INTERNAL_SERVER_ERROR
+            error_status_by_code = {
+                ERROR_IMAGE_NOT_FOUND: status.HTTP_404_NOT_FOUND,
+                ERROR_MODEL_NOT_READY: status.HTTP_503_SERVICE_UNAVAILABLE,
+                ERROR_PREDICT_FAILED: status.HTTP_500_INTERNAL_SERVER_ERROR,
+            }
+
+            error_status = error_status_by_code.get(
+                result.get("error_code"),
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
             raise HTTPException(
@@ -143,12 +160,14 @@ async def predict_record(
         # 11. Worker 결과 검증
         heatmap_url = result.get("heatmap_url")
 
-        if not heatmap_url:
+        # 히트맵은 선택 항목이므로 None을 허용한다.
+        if heatmap_url is not None and (
+            not isinstance(heatmap_url, str) or not heatmap_url.strip()
+        ):
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="AI 워커 결과에 히트맵 주소가 없습니다.",
+                detail="AI 워커의 히트맵 주소가 올바르지 않습니다.",
             )
-
         if result.get("ai_model") != MODEL_NAME:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
