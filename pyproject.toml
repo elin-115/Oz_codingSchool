@@ -4,26 +4,41 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
+# 공통: FastAPI 앱과 AI 워커 둘 다 사용
 dependencies = [
+    "pydantic-settings>=2.13.1",
+    "redis>=5.0",
+]
+
+# 이미지마다 필요한 것만 설치하도록 그룹으로 나눔
+# - fastapi 이미지: uv sync --no-default-groups --group app
+# - ai-worker 이미지: uv sync --no-default-groups --group ai
+[dependency-groups]
+# FastAPI 앱 전용 (API, DB, 인증)
+app = [
     "alembic>=1.18.4",
     "asyncmy>=0.2.11",
     "cryptography>=46.0.6",
     "fastapi[standard]>=0.135.3",
-    "pillow>=13.0.0",
     "pwdlib[argon2]>=0.3.1",
-    "pydantic-settings>=2.13.1",
     "pyjwt>=2.15.1",
     "sqlalchemy[asyncio]>=2.0.49",
-    "torch>=2.14.1,<2.15",
-    "torchvision>=0.29.1,<0.30",
     "uuid6>=2025.0.1",
 ]
-
-[dependency-groups]
+# AI 워커 전용 (모델 추론, 이미지 처리)
+ai = [
+    "pillow>=13.0.0",
+    "torch>=2.14.1,<2.15",
+    "torchvision>=0.29.1,<0.30",
+]
 dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.1",
 ]
+
+[tool.uv]
+# 로컬에서 그냥 `uv sync` 하면 전부 설치 (개발할 땐 지금처럼 한 번에)
+default-groups = ["app", "ai", "dev"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
