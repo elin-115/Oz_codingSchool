@@ -82,11 +82,12 @@ async def predict_record(
         "record_id": record_id,
         "image_url": image_url,
     }
-
-    pubsub = redis_client.pubsub()
+    pubsub = None
     heatmap_url = None
 
     try:
+        pubsub = redis_client.pubsub()
+
         # 6. 결과 채널을 먼저 구독
         # Pub/Sub 메시지 유실 방지를 위해 큐 등록보다 먼저 실행
         await pubsub.subscribe(channel)
@@ -223,11 +224,15 @@ async def predict_record(
         raise
     finally:
         try:
-            await pubsub.unsubscribe(channel)
-        except Exception:
-            pass
+            if pubsub is not None:
+                try:
+                    await pubsub.unsubscribe(channel)
+                except Exception:
+                    pass
+                finally:
+                    await pubsub.aclose()
         finally:
-            await pubsub.aclose()
+            await release_predict_lock(record_id)
 # ===== [박유정] AI 예측 결과 목록 조회 =====
 # 진료기록이 없으면 404 (get_record_or_404), 결과가 없으면 빈 목록 []
 async def get_record_analyses(db: AsyncSession, record_id: int) -> list[AIAnalysisResult]:
