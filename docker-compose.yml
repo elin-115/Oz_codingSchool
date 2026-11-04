@@ -5,7 +5,7 @@ services:
       dockerfile: app/Dockerfile
     working_dir: /app
     # 켤 때마다 alembic으로 테이블을 최신 상태로 맞춘 뒤 서버 실행 (이미 최신이면 바로 넘어감)
-    command: ["sh", "-c", "uv run --no-dev alembic upgrade head && uv run --no-dev uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
+    command: ["sh", "-c", "uv run --no-sync alembic upgrade head && uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
     ports:
       - "8000:8000"
     env_file:
@@ -20,7 +20,6 @@ services:
       - ./worker:/app/worker
       - ./static:/app/static
       - ./media:/app/media
-      - venv_volume:/app/.venv
     depends_on:
       mysql:
         condition: service_healthy
@@ -66,7 +65,20 @@ services:
       timeout: 5s
       retries: 5
 
+  ai-worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile   # 워커 Dockerfile 경로
+    environment:
+      REDIS_HOST: redis
+      PYTHONUNBUFFERED: "1"           # print가 바로 docker logs에 보이게 (안 하면 한참 뒤에 몰아서 나옴)
+    volumes:
+      - ./worker:/app/worker          # 코드 수정 바로 반영 + 모델 파일(worker/models)도 같이 들어감
+      - ./media:/app/media            # ⭐ fastapi와 같은 폴더 공유 (X-Ray 읽기, 히트맵 저장)
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
-  venv_volume:
   mysql_volume:
   redis_volume:
