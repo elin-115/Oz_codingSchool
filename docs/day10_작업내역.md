@@ -1,7 +1,7 @@
 # 📝 Day10 작업 내역
 
 - 날짜: 2026-11-04
-- PR: #75·#76 (9일차 설계 문서), #77 (Redis 서비스 + AI 워커 약속·뼈대), Docker PR (워커 Dockerfile·ai-worker 서비스), 문서 PR
+- PR: #75·#76 (9일차 설계 문서), #77 (Redis 서비스 + AI 워커 약속·뼈대), #78 (워커 Dockerfile·ai-worker 서비스), 문서 PR
 - 작업자: 김지연, 김도엽, 박유정, 이명석
 - 파일별 담당: 9일차 설계·Redis·약속·의존성·Docker 김지연 / FastAPI Redis 연결·예측 서비스 김도엽 (진행 중) / 워커 박유정 (진행 중)
 
@@ -18,7 +18,7 @@
 | #75 | 9일차 FastAPI·Redis Event-Driven Architecture 공부, Excalidraw 아키텍처 도식 |
 | #76 | 9일차 문서에 "한눈에 보기 (지금 vs 바꾼 설계)" 추가 |
 | #77 | 10일차 과제 1 Redis 서비스 + AI 워커 약속·의존성 분리·뼈대 |
-| Docker PR | 10일차 과제 3-2·3-3 워커 Dockerfile, compose ai-worker, fastapi 이미지에서 torch 제외 |
+| #78 | 10일차 과제 3-2·3-3 워커 Dockerfile, compose ai-worker, fastapi 이미지에서 torch 제외 |
 | 문서 PR | Day10 작업내역, 9일차 설계에 실제 구현 차이 추가 |
 
 ## 🆕 새로 만든 것
@@ -63,7 +63,7 @@ def result_channel(task_id: str) -> str:     # 작업마다 자기 결과만 받
 - **왜**: 팀원이 같은 기준으로 바로 작업할 수 있게
 - **어떻게**: 시작 준비, 전체 흐름 ①~⑧, 작업·결과 JSON 형식, 규칙(구독 먼저 → 큐 나중, 60초 타임아웃, 히트맵은 워커가 저장), 의존성 그룹, 분담, 각자 테스트 방법
 
-### `worker/Dockerfile` (Docker PR)
+### `worker/Dockerfile` (#78)
 
 - **왜**: 과제 3-2. AI 워커를 fastapi와 별도 이미지로
 - **어떻게**: `ai` 그룹만 설치, `worker/` 폴더만 복사
@@ -209,7 +209,7 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 ```
 
-### `app/Dockerfile` (Docker PR)
+### `app/Dockerfile` (#78)
 
 ```dockerfile
 # 전
@@ -223,7 +223,7 @@ CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "
 
 - `--no-sync`: `uv run`은 실행 전에 기본 그룹(app·ai·dev)을 자동 설치하려고 해서, 그대로 두면 컨테이너가 켜질 때 torch를 다시 받음
 
-### `docker-compose.yml` - ai-worker 서비스, venv_volume 제거 (Docker PR)
+### `docker-compose.yml` - ai-worker 서비스, venv_volume 제거 (#78)
 
 ```yaml
 # 후 (추가)
@@ -288,7 +288,7 @@ CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "
 - [x] Redis 서비스 (과제 1)
 - [x] 약속·의존성 분리·뼈대
 - [x] 워커 Dockerfile, compose ai-worker, fastapi 이미지 torch 제외
-- [ ] Docker PR 머지 → 팀원 `docker compose down && docker volume rm oz_codingschool_venv_volume`
+- [ ] #78 머지 → 팀원 `docker compose down && docker volume rm oz_codingschool_venv_volume`
 - [ ] FastAPI Redis 연결·예측 서비스 수정 (김도엽)
 - [ ] 워커 BRPOP·예측·Publish (박유정)
 - [ ] 통합 테스트 (`docker compose up --build`, 화면에서 AI 예측)
