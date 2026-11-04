@@ -62,8 +62,22 @@ docker compose exec redis redis-cli ping   # PONG 나오면 준비 완료
 ```
 
 ```json
-{ "task_id": "...", "status": "error", "error": "X-Ray 이미지 파일을 찾을 수 없습니다." }
+{ "task_id": "...", "status": "error", "error_code": "IMAGE_NOT_FOUND", "error": "X-Ray 이미지 파일을 찾을 수 없습니다." }
 ```
+
+#### 에러 코드 (`error_code`)
+
+FastAPI는 에러 문장(`error`)이 아니라 **`error_code`로 응답 상태 코드를 정함**. 문장은 화면에 보여 줄 메시지로만 사용
+
+| 상수 (`task_contract.py`) | 값 | 상황 | FastAPI 응답 | 메시지 예 |
+|---|---|---|---|---|
+| `ERROR_IMAGE_NOT_FOUND` | `IMAGE_NOT_FOUND` | X-Ray 파일이 없음 | **404** | X-Ray 이미지 파일을 찾을 수 없습니다. |
+| `ERROR_MODEL_NOT_READY` | `MODEL_NOT_READY` | 워커에 모델 파일이 없거나 로딩 실패 | **503** | AI 모델이 준비되지 않았습니다. |
+| `ERROR_PREDICT_FAILED` | `PREDICT_FAILED` | 그 밖의 예측 중 오류 | **500** | AI 예측 처리 중 오류가 발생했습니다. |
+| (결과 없음) | - | `RESULT_TIMEOUT`초 안에 결과가 안 옴 | **504** | AI 예측 시간이 초과되었습니다. |
+
+- 모르는 `error_code`가 오거나 없으면 500으로 처리
+- 404·503은 예전 동기 API와 같은 상태 코드 (프론트 처리 그대로)
 
 - `confidence`는 지금 DB와 같은 **0~100 (%)**
 - `heatmap_url`은 DB에 그대로 저장할 주소 형식 (`/media/heatmap/...`)
@@ -75,7 +89,7 @@ docker compose exec redis redis-cli ping   # PONG 나오면 준비 완료
 | 구독 먼저, 큐는 나중에 | 큐에 먼저 넣으면 워커가 빨리 끝냈을 때 결과 메시지를 놓침 (Pub/Sub은 듣고 있지 않으면 사라짐) |
 | 기존 결과 재사용 | `record_id + MODEL_NAME`으로 DB 확인 → 있으면 큐에 넣지 않고 200 |
 | 타임아웃 | `RESULT_TIMEOUT`초 안에 결과가 없으면 504 "AI 예측 시간이 초과되었습니다." |
-| 워커 실패 | `status: "error"`면 FastAPI가 알맞은 에러 응답 (이미지 없음 404 등) |
+| 워커 실패 | `status: "error"`면 `error_code`로 404·503·500 응답 (2장 에러 코드 표) |
 | 히트맵 | 워커가 만들어 `media/heatmap/`에 저장, 주소만 보냄. media 폴더는 FastAPI·워커가 볼륨으로 공유 |
 | DB 저장 실패 | 지금처럼 rollback + 히트맵 파일 삭제 |
 | 모델 로딩 | FastAPI `lifespan`에서 `load_model()` 제거 → 워커가 켜질 때 불러옴 |
