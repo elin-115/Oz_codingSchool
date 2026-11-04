@@ -123,7 +123,50 @@ FastAPI는 에러 문장(`error`)이 아니라 **`error_code`로 응답 상태 �
 - 뼈대 파일에 `# ===== [이름] =====`과 `TODO`로 할 일을 적어 둠
 - 작업 브랜치는 develop에서, PR은 develop으로
 
-## 6. 각자 테스트하는 방법
+## 6. (선택) 따닥 방지 락 - `app/core/predict_lock.py`
+
+같은 진료기록 예측을 동시에 여러 번 요청하면(버튼 "따닥") **첫 번째만 진행**하고 나머지는 막음
+
+| 함수 | 하는 일 |
+|---|---|
+| `acquire_predict_lock(record_id)` | 락 잡기. 성공 `True`, 이미 예측 중이면 `False` (Redis `SET NX EX`) |
+| `release_predict_lock(record_id)` | 락 풀기 (Redis `DEL`) |
+
+- 락 키: `ai:predict:lock:{record_id}:{MODEL_NAME}`
+- 자동 해제: `LOCK_EXPIRE = RESULT_TIMEOUT + 10` (70초). 서버가 죽어 release를 못 해도 저절로 풀림
+
+### 서비스에서 쓰는 위치 (김도엽)
+
+```python
+from app.core.predict_lock import acquire_predict_lock, release_predict_lock
+
+# 2. 기존 결과 확인 → 있으면 바로 200 (락 필요 없음)
+# 3~4. X-Ray 이미지 확인
+
+# 락 잡기: 이미 같은 예측이 진행 중이면 409
+if not await acquire_predict_lock(record_id):
+    raise HTTPException(status_code=409, detail="이미 AI 예측이 진행 중입니다.")
+
+try:
+    # 5~12. 구독 → LPUSH → 결과 대기 → DB 저장 (지금 코드 그대로)
+    ...
+finally:
+    await release_predict_lock(record_id)   # 성공·실패·타임아웃 모두 락 해제
+```
+
+- 기존 결과 확인 **다음**에 잡음 → 첫 번째 예측이 끝난 뒤 다시 누르면 락 없이 기존 결과(200)를 돌려줌
+- `finally`에서 풀어야 에러가 나도 락이 남지 않음
+
+### 확인 결과 (로컬 Redis)
+
+| 테스트 | 결과 |
+|---|---|
+| 같은 진료기록으로 5번 동시 요청 | `[True, False, False, False, False]` → 1개만 통과 |
+| 락 남은 시간 | 70초 |
+| 진행 중 재요청 / 해제 후 요청 | `False` / `True` |
+| 해제 후 키 | 남지 않음 |
+
+## 7. 각자 테스트하는 방법
 
 | 담당 | 혼자 테스트 |
 |---|---|
