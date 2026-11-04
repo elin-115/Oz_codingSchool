@@ -226,6 +226,7 @@ Stage 1~6 단계별로 누가 무엇을 했는지, 세부 내역과 PR 번호를
 | Day06 | 10/29 | [통합 테스트 결과](docs/day06_통합테스트_결과.md) | 팀원별 화면·자동 테스트 결과, 공통 발견(시간 9시간·캐시), 개선 제안 6개 |
 | Day07 | 10/29 | [앱 실행 화면](docs/day07_앱_실행화면.md) | `fastapi run`으로 실행한 API 20개의 프론트 화면 캡처와 동작 설명 |
 | Day08 | 10/30 | [도커 실행 화면](docs/day08_도커_실행화면.md) | Dockerfile·.dockerignore 빌드·실행, docker compose(fastapi + mysql) 실행·--reload 확인 |
+| Day09 | 11/04 | [동시성 문제 해결을 위한 아키텍처 설계](docs/9일차_동시성문제_해결을위한_아키텍처설계.md) | FastAPI + Redis Event-Driven Architecture, AI 워커 분리, Redis 작업 대기열·락 설계와 Excalidraw 도식 |
 
 ## 📝 작업 내역
 
