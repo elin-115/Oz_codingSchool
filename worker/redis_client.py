@@ -12,5 +12,10 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 
 
 # ===== [박유정] Redis 동기 클라이언트 연결 =====
-# TODO: REDIS_HOST, REDIS_PORT로 동기 클라이언트 만들기 (decode_responses=True 권장)
-redis_client: redis.Redis = ...
+# REDIS_HOST, REDIS_PORT로 동기 클라이언트 만들기 (decode_responses=True 권장)
+redis_client: redis.Redis = redis.Redis(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    decode_responses=True,
+    socket_timeout=None,  # BRPOP은 작업이 올 때까지 계속 대기여서 시간 제한 없음
+)
