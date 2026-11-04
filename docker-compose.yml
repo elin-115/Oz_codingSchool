@@ -13,6 +13,7 @@ services:
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
+      REDIS_HOST: redis
     volumes:
       - ./app:/app/app
       - ./alembic:/app/alembic
@@ -22,6 +23,8 @@ services:
       - venv_volume:/app/.venv
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthcheck')"]
@@ -50,6 +53,20 @@ services:
       retries: 10
       start_period: 30s
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_volume:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   venv_volume:
   mysql_volume:
+  redis_volume:
