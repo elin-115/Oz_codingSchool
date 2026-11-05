@@ -13,7 +13,6 @@ from app.apis.practice_apis import practice_router
 from app.apis.users import user_router
 
 
-
 app = FastAPI(
     title="폐렴 환자 관리 백오피스",
     # 마크다운은 4칸 이상 들여쓰면 코드 블록이 되므로 description 내용은 들여쓰지 않음
