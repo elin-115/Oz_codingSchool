@@ -5,6 +5,7 @@
   - fastapi와 ai-worker 도커 서비스가 분리되어 있음
   - 요청 → Redis 큐에 작업 삽입 → 워커가 예측 → Pub/Sub으로 결과 전달 → FastAPI가 DB 저장·응답
 - 기준 문서: [Day10 AI 워커 분리 설계](day10_AI워커_분리_설계.md)
+- 테스트 기준: `develop` #86 머지 커밋 `e2bd92b` (미완료 작업 복구 포함)
 - 테스트 날짜:
 - 참여: 김지연, 김도엽, 박유정
 
@@ -26,7 +27,7 @@ docker compose ps
   ```bash
   docker compose exec redis redis-cli MONITOR
   ```
-  `MONITOR`는 Redis에 들어오는 명령(`LPUSH`, `BRPOP`, `PUBLISH`, `SUBSCRIBE`)을 실시간으로 보여 줌 → 흐름 캡처용
+  `MONITOR`는 Redis에 들어오는 명령(`SUBSCRIBE`, `LPUSH`, `BLMOVE`, `EXPIRE`, `PUBLISH`, `LREM`)을 실시간으로 보여 줌 → 흐름 캡처용
 
 ## 1. 서비스 분리 확인
 
@@ -51,7 +52,7 @@ docker compose ps
 |---|---|---|---|
 | 2-1 | 새 진료기록 예측 | `201`, 폐렴 여부·신뢰도·히트맵 표시 | |
 | 2-2 | 워커 로그 | `완료 task_id=... status=success` (워커 1개만) | |
-| 2-3 | Redis MONITOR | `SUBSCRIBE` → `LPUSH ai:predict:queue` → `BRPOP` → `PUBLISH ai:predict:result:{task_id}` 순서 | |
+| 2-3 | Redis MONITOR | `SUBSCRIBE` → `LPUSH ai:predict:queue` → `BLMOVE ai:predict:queue ai:predict:processing:{hostname}` → `EXPIRE` → `PUBLISH ai:predict:result:{task_id}` → `LREM` 순서 | |
 | 2-4 | 결과 목록 | `GET /analyses`에 방금 결과 | |
 | 2-5 | DB | `ai_analysis_results`에 1행, `ai_model = ensemble_3models_fold1_v1` | |
 | 2-6 | 히트맵 파일 | `media/heatmap/`에 새 파일, 화면에 표시 | |
@@ -96,7 +97,30 @@ docker compose ps
 
 - 테스트 후 옮긴 파일 원래대로, `docker compose up -d --scale ai-worker=2`
 
-## 7. 자동 테스트
+## 7. 미완료 작업 복구 (#86)
+
+예측 도중 워커가 죽어도 작업이 사라지지 않고, 워커가 다시 켜지면 이어서 처리되는지 확인함.
+워커가 꺼낸 작업은 워커별 작업대 `ai:predict:processing:{hostname}`에 올라가 있다가 결과를 보낸 뒤 지워짐.
+
+```bash
+docker compose up -d --scale ai-worker=1     # 워커 1개로 줄여서 확인 (어느 워커가 죽었는지 헷갈리지 않게)
+docker compose exec ai-worker hostname       # 작업대 이름에 들어갈 hostname 확인
+```
+
+| # | 시나리오 | 방법 | 기대 결과 | 결과 |
+|---|---|---|---|---|
+| 7-1 | 예측 중 워커 강제 종료 | 진료기록 3~4개를 연달아 예측하고, 워커 로그에 첫 `완료`가 뜨면 바로 `docker compose kill ai-worker` | 처리 중이던 작업이 작업대에 남음 (`redis-cli LRANGE ai:predict:processing:{hostname} 0 -1`) | |
+| 7-2 | 작업대 유효기간 | `redis-cli TTL ai:predict:processing:{hostname}` | 120 이하의 양수 | |
+| 7-3 | 같은 컨테이너 재시작 | `docker compose start ai-worker` | `[AI 워커] 미완료 작업 N개 복구` → 남은 작업 모두 `완료 ... status=success` | |
+| 7-4 | 처리 끝난 뒤 | `redis-cli EXISTS ai:predict:processing:{hostname}`, `redis-cli LLEN ai:predict:queue` | 둘 다 `0` (흔적 없음) | |
+| 7-5 | (선택) 컨테이너 새로 생성 | 7-1처럼 kill 후 `docker compose rm -f ai-worker && docker compose up -d ai-worker` | hostname이 바뀌어 옛 작업대는 복구 안 함, 약 120초 뒤 옛 작업대 자동 삭제 (`EXISTS` → `0`) | |
+
+> ⚠️ 7-1에서 화면 요청은 워커가 60초 안에 다시 켜지지 않으면 `504`가 됨. 복구된 작업의 결과는 FastAPI가 이미 응답을 끝냈으면 버려짐 (의도한 동작)
+> 💡 `redis-cli` 명령은 `docker compose exec redis redis-cli ...`로 실행
+
+- 테스트 후 `docker compose up -d --scale ai-worker=2`
+
+## 8. 자동 테스트
 
 ```bash
 uv run pytest -q
@@ -116,7 +140,8 @@ uv run pytest -q
 | 4. 다중 워커 | | |
 | 5. 동시 요청 | | |
 | 6. 에러 코드 | | |
-| 7. 자동 테스트 | | |
+| 7. 미완료 작업 복구 | | |
+| 8. 자동 테스트 | | |
 
 ## 🔍 발견한 문제
 
