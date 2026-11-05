@@ -1,16 +1,17 @@
 # 📝 Day10 작업 내역
 
-- 날짜: 2026-11-04
-- PR: #75·#76 (9일차 설계 문서), #77 (Redis 서비스 + AI 워커 약속·뼈대), #78 (워커 Dockerfile·ai-worker 서비스), 문서 PR
+- 날짜: 2026-11-04 ~ 2026-11-05
+- PR: #75·#76 (9일차 설계 문서), #77 (Redis 서비스 + AI 워커 약속·뼈대), #78 (워커 Dockerfile·ai-worker 서비스), #79 (작업내역), #80 (FastAPI 연동), #81 (에러 코드), #82 (따닥 방지 락), #83 (AI 워커), #84 (정리), #85 (워커 자동 재시작), #86 (미완료 작업 복구), #87 (AWS 배포 QA), #88 (통합 테스트)
 - 작업자: 김지연, 김도엽, 박유정, 이명석
-- 파일별 담당: 9일차 설계·Redis·약속·의존성·Docker 김지연 / FastAPI Redis 연결·예측 서비스 김도엽 (진행 중) / 워커 박유정 (진행 중)
+- 파일별 담당: 9일차 설계·Redis·약속·의존성·Docker·에러 코드·락·재시작·복구 김지연 / FastAPI Redis 연결·예측 서비스 김도엽 / 워커 박유정 / 통합 테스트 4명
 
 ## 요약
 
 | 구분 | 개수 | 내용 |
 |---|---|---|
-| 🆕 새로 만든 것 | 7 | 9일차 설계 문서·도식, `worker/task_contract.py`, `worker/Dockerfile`, 뼈대 3개(`app/core/redis_client.py`, `worker/redis_client.py`, `worker/main.py`), Day10 설계 문서 |
-| ✏️ 수정한 것 | 7 | `docker-compose.yml`, `pyproject.toml`·`uv.lock`, `worker/model.py`, `app/core/config.py`, `.env.example`, `app/Dockerfile` |
+| 🆕 새로 만든 것 | 9 | 9일차 설계 문서·도식, `worker/task_contract.py`, `worker/Dockerfile`, 뼈대 3개(`app/core/redis_client.py`, `worker/redis_client.py`, `worker/main.py`), Day10 설계 문서, `app/core/predict_lock.py`, 통합 테스트 문서 |
+| ✏️ 수정한 것 | 12 | `docker-compose.yml`, `pyproject.toml`·`uv.lock`, `worker/model.py`, `app/core/config.py`, `.env.example`, `app/Dockerfile`, `app/services/ai_analyses.py`, `app/main.py`·`app/core/files.py`, `tests/test_ai_analyses.py`, `worker/main.py`·`worker/redis_client.py`, `worker/task_contract.py`, AWS 07 문서 |
+| 🧪 통합 테스트 | 4명 | 8개 항목 전부 통과, 모든 항목을 2명 이상이 확인 |
 | 📦 fastapi 이미지 | 1.91GB → 960MB | torch를 ai 그룹으로 분리 (라이브러리 약 1.5GB → 201MB) |
 
 | PR | 내용 |
@@ -19,7 +20,16 @@
 | #76 | 9일차 문서에 "한눈에 보기 (지금 vs 바꾼 설계)" 추가 |
 | #77 | 10일차 과제 1 Redis 서비스 + AI 워커 약속·의존성 분리·뼈대 |
 | #78 | 10일차 과제 3-2·3-3 워커 Dockerfile, compose ai-worker, fastapi 이미지에서 torch 제외 |
-| 문서 PR | Day10 작업내역, 9일차 설계에 실제 구현 차이 추가 |
+| #79 | Day10 작업내역, 9일차 설계에 실제 구현 차이 추가 |
+| #80 | 김도엽: FastAPI Redis 연결, 예측 서비스를 큐 + Pub/Sub 방식으로 변경, 테스트 수정 |
+| #81 | 워커 실패 결과에 `error_code` 추가 (404/503/500 매핑) |
+| #82 | 같은 진료기록 동시 예측을 막는 Redis 락 (409) |
+| #83 | 박유정: AI 워커 Redis 연결, 큐 루프, 예측·히트맵 저장, 결과 PUBLISH |
+| #84 | 공백·중복 주석·미사용 상수 정리 |
+| #85 | `ai-worker`에 `restart: unless-stopped` |
+| #86 | 미완료 작업 복구 (BRPOP → BLMOVE + 워커별 작업대 + EXPIRE) |
+| #87 | AWS 배포 서버 기능 테스트 결과 (`docs/aws/07`) |
+| #88 | Day10 통합 테스트 결과 (4명, 캡처 17장) |
 
 ## 🆕 새로 만든 것
 
@@ -85,6 +95,34 @@ CMD ["uv", "run", "--no-sync", "python", "-m", "worker.main"]
   - `--group torch` → 그룹 이름은 패키지 이름이 아니라 `pyproject.toml`에 붙인 이름(`ai`)
   - 줄 끝 `# 주석` → Dockerfile은 줄 끝 주석 불가, 위 줄로 옮김
   - `worker.main:worker` → `python -m`은 모듈 이름만 받음 (`:` 형식은 uvicorn용)
+
+### `app/core/predict_lock.py` (#82)
+
+- **왜**: 같은 진료기록에서 예측 버튼을 빠르게 두 번 누르면 "기존 결과 확인 → 저장" 사이에 둘 다 통과해서 결과가 **중복 저장**될 수 있음 (9일차에서 찾은 문제)
+- **어떻게**: Redis `SET NX`(키가 없을 때만 저장)는 원자적이라 동시에 와도 하나만 성공함
+
+```python
+LOCK_EXPIRE = RESULT_TIMEOUT + 10   # 서버가 죽어서 못 풀어도 70초 뒤 저절로 풀림
+
+def _lock_key(record_id: int) -> str:
+    return f"ai:predict:lock:{record_id}:{MODEL_NAME}"
+
+async def acquire_predict_lock(record_id: int) -> bool:
+    ok = await redis_client.set(_lock_key(record_id), "1", nx=True, ex=LOCK_EXPIRE)
+    return bool(ok)
+
+async def release_predict_lock(record_id: int) -> None:
+    await redis_client.delete(_lock_key(record_id))
+```
+
+- 예측 서비스는 락을 못 잡으면 `409 이미 AI 예측이 진행 중입니다.`, 끝나면 `finally`에서 항상 해제함
+
+### `docs/day10_통합테스트.md`, `docs/images/day10/` (#88)
+
+- **왜**: 과제 완료 조건(서비스 분리, 큐 → 워커 → Pub/Sub → DB 저장)을 4명이 같은 기준으로 확인
+- **어떻게**: 시나리오 8개(서비스 분리, 기본 흐름, 결과 재사용, 다중 워커, 따닥 방지, 에러 코드, 미완료 작업 복구, pytest) + 팀원별 결과 + 발견한 문제
+  - 처음엔 #86 전 내용이라 MONITOR 기대 흐름을 `BRPOP` → `BLMOVE`·`EXPIRE`·`LREM`으로 고치고 7번 복구 시나리오를 추가함
+  - 팀원마다 OS(macOS·Windows)와 방법이 달라서 결과를 섹션별로 나눠 적음
 
 ## ✏️ 수정한 것
 
@@ -264,6 +302,137 @@ CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "
 
 - 5장 끝에 "10일차 실제 구현에서 바뀐 점" 표 추가: DB 저장은 FastAPI, 결과는 Pub/Sub으로 받음, 응답은 201/200 유지, 락은 선택 과제
 
+### `app/services/ai_analyses.py` - 예측을 워커에 맡김 (#80 김도엽, #82, #84)
+
+- **왜**: 과제 2-1. FastAPI가 모델을 직접 돌리지 않고 Redis 큐로 워커에 맡김
+- **어떻게**
+
+```python
+# 전: FastAPI 안에서 직접 예측
+prediction = await run_in_threadpool(ai_model.predict, image_path)
+heatmap = await run_in_threadpool(ai_model.make_heatmap, image_path)
+heatmap_url = await run_in_threadpool(save_heatmap_image, heatmap)
+```
+
+```python
+# 후: 락 → 구독 먼저 → 큐에 넣기 → 결과 기다리기
+if not await acquire_predict_lock(record_id):          # #82
+    raise HTTPException(status.HTTP_409_CONFLICT, "이미 AI 예측이 진행 중입니다.")
+
+pubsub = redis_client.pubsub()
+await pubsub.subscribe(result_channel(task_id))        # 결과를 놓치지 않게 먼저 구독
+await redis_client.lpush(QUEUE_NAME, json.dumps(task)) # 그다음 큐에 작업 등록
+
+# RESULT_TIMEOUT(60초) 동안 1초씩 결과 확인 → 없으면 504
+# 워커 결과의 error_code로 응답 코드 결정 (#81)
+error_status_by_code = {
+    ERROR_IMAGE_NOT_FOUND: status.HTTP_404_NOT_FOUND,
+    ERROR_MODEL_NOT_READY: status.HTTP_503_SERVICE_UNAVAILABLE,
+    ERROR_PREDICT_FAILED: status.HTTP_500_INTERNAL_SERVER_ERROR,
+}
+# finally: 구독 해제 + 락 해제, DB 저장 실패 시 워커가 만든 히트맵 파일 삭제
+```
+
+- 결과가 오면 `task_id`·`ai_model`·`is_pneumonia`·`heatmap_url` 형식을 검사하고, 이상하면 `502`
+- 기존 결과 재사용(200), X-Ray 파일 사전 확인(404)은 큐에 넣기 전에 그대로 처리함
+- #84: 락 아래 중복 주석 삭제, `# 10. Worker 오류 처리` 들여쓰기 9칸 → 8칸
+
+### `app/main.py`, `app/core/files.py` - 모델·히트맵 코드 제거 (#80, #84)
+
+- **왜**: fastapi 이미지엔 torch·PIL이 없음 (#78). 모델 로딩과 히트맵 저장은 이제 워커가 함
+
+```python
+# app/main.py 전: 서버가 켜질 때 모델 로딩
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    load_model()
+    yield
+
+app = FastAPI(lifespan=lifespan, ...)
+```
+
+```python
+# 후: lifespan 삭제
+app = FastAPI(...)
+```
+
+- `app/core/files.py`: `save_heatmap_image()`와 `from PIL import Image` 삭제 (#80), 안 쓰는 `HEATMAP_FOLDER` 상수 삭제 (#84)
+
+### `tests/test_ai_analyses.py` (#80 김도엽)
+
+- **왜**: 예측이 Redis를 거치게 바뀌어서 기존 테스트(모델 직접 호출)가 맞지 않음
+- **어떻게**: Redis를 가짜 객체로 바꿔 워커 결과를 흉내 냄. 성공 201, 재사용 200, 에러 코드별 404/503/500, 타임아웃 504 테스트 → 전체 16개 통과
+
+### `worker/main.py`, `worker/redis_client.py` - AI 워커 (#83 박유정, #86)
+
+- **왜**: 과제 2-2. 큐에서 작업을 꺼내 예측하고 결과를 PUBLISH
+- **어떻게 (#83)**: 켜질 때 `load_model()` 한 번 → 무한 반복(꺼내기 → `handle_task()` → `publish`)
+  - 이미지 없음·모델 없음은 `error_code`를 담은 error 결과로 보냄
+  - 그 밖의 예외도 잡아서 `PREDICT_FAILED`로 보냄 → **어떤 에러가 나도 워커는 죽지 않음**
+  - 히트맵은 워커가 `media/heatmap/`에 저장하고 주소만 보냄 (fastapi와 `media` 폴더 공유)
+  - `worker/redis_client.py`: `decode_responses=True`, `socket_timeout=None` (작업이 없을 때 무한 대기)
+- **미완료 작업 복구 (#86)**: BRPOP은 꺼내는 순간 큐에서 지워서, 예측 중에 워커가 죽으면 작업이 사라짐
+
+```python
+# 전
+_, raw_task = redis_client.brpop(QUEUE_NAME)
+...
+redis_client.publish(result_channel(task_id), json.dumps(result))
+```
+
+```python
+# 후
+worker_name = socket.gethostname()           # 컨테이너 이름, 재시작해도 그대로
+processing = processing_queue(worker_name)   # 이 워커 전용 작업대
+
+# 켜질 때: 지난번에 처리하다 죽은 작업을 큐로 되돌림
+recovered = 0
+while redis_client.lmove(processing, QUEUE_NAME, "LEFT", "RIGHT"):
+    recovered += 1
+
+# 꺼내면서 작업대로 옮김 (원자적이라 중간에 사라지지 않음)
+raw_task = redis_client.blmove(QUEUE_NAME, processing, 0, src="RIGHT", dest="LEFT")
+redis_client.expire(processing, RESULT_TIMEOUT * 2)   # 버려진 작업대는 120초 뒤 자동 삭제
+...
+redis_client.publish(result_channel(task_id), json.dumps(result))
+redis_client.lrem(processing, 1, raw_task)            # 결과를 보낸 뒤에만 작업대에서 삭제
+```
+
+- 처음 작성 때 실수: f-string 중괄호 누락(`processing:worker_name`), 변수 대신 글자 `"task_queue"`, `lmove` 인자 순서 반대, `blmove` 인자 하나만, import 목록의 쉼표를 마침표로 씀 → 리뷰하면서 고침
+- `EXPIRE`를 `* 1`(60초)이 아니라 `* 2`(120초)로 한 이유: 작업이 큐에서 기다린 시간과 워커 재시작·모델 로딩 시간까지 넉넉히 기다리기 위함
+- 한계: 컨테이너를 **새로 만들면** hostname이 바뀌어 옛 작업대는 복구하지 않고 120초 뒤 지워짐. 그 작업은 FastAPI가 이미 504로 응답을 끝낸 상태라 의도한 동작임
+
+### `worker/task_contract.py` - 에러 코드, 작업대 이름 (#81, #86)
+
+```python
+# 후 (추가, #81)
+ERROR_IMAGE_NOT_FOUND = "IMAGE_NOT_FOUND"   # → 404
+ERROR_MODEL_NOT_READY = "MODEL_NOT_READY"   # → 503
+ERROR_PREDICT_FAILED = "PREDICT_FAILED"     # → 500
+
+# 후 (추가, #86)
+def processing_queue(worker_name: str) -> str:
+    return f"ai:predict:processing:{worker_name}"
+```
+
+- #81 이유: 에러 문장을 비교하면 문장이 조금만 바뀌어도 응답 코드가 틀어짐. 코드(약속된 값)로 비교하고 문장은 화면 메시지로만 씀
+
+### `docker-compose.yml` - ai-worker 자동 재시작 (#85)
+
+```yaml
+# 후 (추가)
+  ai-worker:
+    restart: unless-stopped
+```
+
+- **왜**: Redis 연결이 끊기는 등으로 워커가 스스로 종료돼도 다시 켜지게
+- 참고 (박유정): `docker compose kill`·`stop`은 **직접 끈 것**이라 자동 재시작되지 않음 → `docker compose start`로 켬
+
+### `docs/aws/07_서버_실행_테스트.md`, `docs/aws/README.md` (#87)
+
+- **왜**: AWS 배포 과제 8단계 "배포 주소에서 모든 기능 테스트" 마무리
+- **어떻게**: 11/05 서버 상태(2일 무중단), 첫 계정 승인 방법, 브라우저 기능 테스트 표 + 캡처 8장. 배포 이미지는 Day10 이전 구조(fastapi + mysql + nginx)로 과제 가이드 구성과 같음을 명시. 팀원 QA는 진행하지 않기로 함
+
 ## ✅ 확인한 것
 
 | 확인 | 결과 |
@@ -273,6 +442,10 @@ CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "
 | fastapi 이미지 | redis ✅, torch·PIL 없음, 960MB |
 | ai-worker 이미지 | torch 2.14.1+cpu, redis, task_contract import ✅, 1.28GB |
 | `venv_volume` 제거 후 | fastapi 컨테이너에서 `import redis` ✅ |
+| pytest | 16 passed (#80 이후) |
+| 통합 테스트 (#88) | 1~8번 전부 통과. 김지연·이명석은 전체, 박유정은 4·7번, 김도엽은 1·2·8번 |
+| 미완료 작업 복구 (#86) | 화면에서 예측 중 워커 kill → 14초 뒤 start → `미완료 작업 1개 복구` → 60초 안에 끝나 사용자는 `201`로 결과를 받음 |
+| AWS 배포 서버 (#87) | 회원·관리자·환자·진료기록·AI 예측 브라우저 테스트 통과 |
 
 ## 💡 배운 것
 
@@ -282,14 +455,22 @@ CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "
 - **`uv run`은 실행 전에 자동으로 설치(sync)함.** 이미지 안에서는 `--no-sync`로 막아야 함
 - **이름 있는 볼륨은 처음 내용을 계속 보관함.** 이미지를 새로 빌드해도 볼륨이 덮어쓰면 옛날 내용이 보임
 - **설계와 구현이 달라질 수 있음.** 바뀐 점과 이유를 설계 문서에 남겨 두면 헷갈리지 않음
+- **BRPOP은 꺼내는 순간 지움.** 처리 중에 죽어도 안전하려면 BLMOVE로 "작업대"에 옮겨 두고, 다 끝난 뒤에 지워야 함
+- **Redis 명령 하나는 원자적임.** `SET NX`(락), `BLMOVE`(꺼내며 옮기기) 모두 동시에 와도 하나만 성공함
+- **에러는 문장이 아니라 코드로 주고받음.** 문장은 바뀔 수 있어서 응답 코드를 정하는 기준으로 쓰면 깨지기 쉬움
+- **로그는 응답이 끝난 순서로 찍힘.** 동시 요청에서 409가 201보다 먼저 보인 건, 409는 바로 응답하고 201은 예측이 끝나야 응답하기 때문
+- **문법 에러는 밑줄 위치보다 한 줄 위를 먼저 봄.** 쉼표 대신 마침표를 찍으면 다음 줄에 밑줄이 생김
 
 ## ⏭️ 남은 작업
 
 - [x] Redis 서비스 (과제 1)
 - [x] 약속·의존성 분리·뼈대
 - [x] 워커 Dockerfile, compose ai-worker, fastapi 이미지 torch 제외
-- [ ] #78 머지 → 팀원 `docker compose down && docker volume rm oz_codingschool_venv_volume`
-- [ ] FastAPI Redis 연결·예측 서비스 수정 (김도엽)
-- [ ] 워커 BRPOP·예측·Publish (박유정)
-- [ ] 통합 테스트 (`docker compose up --build`, 화면에서 AI 예측)
-- [ ] (선택) 따닥 방지 락, 미완료 작업 복구
+- [x] #78 머지 → 팀원 `docker compose down && docker volume rm oz_codingschool_venv_volume`
+- [x] FastAPI Redis 연결·예측 서비스 수정 (#80 김도엽)
+- [x] 워커 큐 루프·예측·Publish (#83 박유정)
+- [x] 통합 테스트 (#88)
+- [x] 따닥 방지 락 (#82), 미완료 작업 복구 (#86)
+- [ ] develop → main 반영
+- [ ] (개선) 503·504일 때 화면에 서버 메시지 표시, 504 뒤 남은 작업은 워커가 건너뛰기
+- [ ] AWS 리소스 정리 (`docs/aws/08`)
