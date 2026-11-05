@@ -1,0 +1,110 @@
+# ============================================================
+# 🚀 서버(AWS EC2)에서 쓰는 docker compose 파일
+# ------------------------------------------------------------
+# - 로컬 개발용 docker-compose.yml을 서버용으로 바꾼 것
+# - 서버에는 docker-compose.yml 이름으로 올려서 `docker compose up -d` 한 줄로 실행
+# - 컨테이너 3개를 한 번에 띄움
+#
+#   사용자 ──(80번)──▶ nginx ──▶ fastapi ──▶ mysql
+#                   (입구)    (우리 앱)   (DB)
+#
+# - 밖에서 들어올 수 있는 문은 nginx의 80번 하나뿐
+#   fastapi(8000), mysql(3306)은 컨테이너끼리만 통신함
+# ============================================================
+
+services:                         # 띄울 컨테이너(서비스) 목록
+
+  # ----------------------------------------------------------
+  # 1. fastapi: 우리 백오피스 앱 (API + 프론트 화면 + AI 예측)
+  # ----------------------------------------------------------
+  fastapi:
+    # 5단계에서 Docker Hub에 올린 이미지를 받아서 사용 (서버에서 빌드하지 않음)
+    # 형식: Docker Hub 유저이름/저장소(이미지) 이름:태그(버전 이름)
+    image: elin115/oz-backoffice:latest
+    # 컨테이너가 죽거나 서버가 재부팅돼도 자동으로 다시 켜짐 (직접 stop한 경우만 제외)
+    restart: unless-stopped
+    # 컨테이너 안에서 명령을 실행할 기준 폴더 (Dockerfile의 WORKDIR와 같음)
+    working_dir: /app
+    # 컨테이너가 켜질 때 실행할 명령
+    # ① alembic upgrade head: DB 테이블을 최신 상태로 맞춤 (처음엔 테이블 생성, 이미 최신이면 바로 넘어감)
+    # ② uvicorn: FastAPI 서버 실행. 서버에선 코드가 안 바뀌므로 --reload는 뺌
+    #    --host 0.0.0.0: 컨테이너 밖(nginx)에서도 접속할 수 있게 열어 둠
+    command: ["sh", "-c", "uv run --no-dev alembic upgrade head && uv run --no-dev uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    # 서버의 .env 파일(맥의 .prod.env를 올린 것)을 환경 변수로 읽음 → DB 비밀번호, SECRET_KEY
+    env_file:
+      - .env
+    # .env 값 중에서 이 두 개는 여기서 덮어씀
+    environment:
+      DB_HOST: mysql              # DB 주소 = 아래 mysql 서비스 이름 (컨테이너끼리는 서비스 이름으로 찾아감)
+      DB_PORT: "3306"
+    # 볼륨: "서버 폴더:컨테이너 폴더" 연결 (컨테이너를 지웠다 다시 만들어도 서버 폴더에 남음)
+    volumes:
+      - ./media:/app/media              # 업로드한 X-Ray 사진, AI 히트맵 저장 위치
+      - ./models:/app/worker/models     # AI 모델 파일(.pt). 이미지에서 뺐기 때문에 서버 폴더에서 연결
+    # ports가 없음 → 8000번은 밖으로 열지 않음. 밖에서는 nginx를 거쳐서만 들어옴
+    # mysql이 "준비 완료(healthy)"가 된 다음에 켜짐 (DB가 없으면 alembic이 실패하니까)
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # 건강 검사: 서버가 제대로 응답하는지 주기적으로 확인
+    # /healthcheck 주소를 불러서 응답이 오면 healthy (slim 이미지엔 curl이 없어서 python으로 요청)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthcheck')"]
+      interval: 5s                # 5초마다 검사
+      timeout: 5s                 # 5초 안에 응답 없으면 실패 1번
+      retries: 3                  # 3번 연속 실패하면 unhealthy
+      start_period: 120s          # 처음 2분은 실패해도 unhealthy로 치지 않음 (마이그레이션·AI 모델 로딩 시간)
+
+  # ----------------------------------------------------------
+  # 2. mysql: 데이터베이스
+  # ----------------------------------------------------------
+  mysql:
+    image: mysql:8.0              # Docker Hub 공식 MySQL 8.0 이미지
+    restart: unless-stopped
+    # MySQL이 처음 켜질 때 계정·DB를 만드는 설정. 값은 서버 .env에서 가져옴
+    # ${변수:?메시지}: .env에 값이 없으면 실행을 막고 메시지 출력 (비밀번호 없이 뜨는 것 방지)
+    # ${변수:-기본값}: .env에 값이 없으면 기본값 사용
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}   # 관리자(root) 비밀번호
+      MYSQL_DATABASE: ${DB_NAME:-ai_health}                                    # 처음에 만들 DB 이름
+      MYSQL_USER: ${DB_USER:-ozcoding}                                         # 앱이 쓸 계정
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}                  # 앱 계정 비밀번호
+    # DB 데이터를 이름 있는 볼륨(mysql_volume)에 저장 → 컨테이너를 지워도 데이터 유지
+    # ⚠️ 비밀번호는 처음 켤 때 볼륨에 저장되므로, 나중에 .env만 바꾸면 접속이 안 됨
+    volumes:
+      - mysql_volume:/var/lib/mysql
+    # ports가 없음 → 3306번은 밖으로 열지 않음 (DB는 fastapi만 접근)
+    # 건강 검사: mysqladmin ping으로 DB가 요청을 받을 준비가 됐는지 확인
+    # $$: compose가 $를 변수로 바꾸지 않고 컨테이너 안으로 그대로 넘기게 함
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s           # 처음 30초는 실패해도 unhealthy로 치지 않음 (DB 초기화 시간)
+
+  # ----------------------------------------------------------
+  # 3. nginx: 사용자 요청을 가장 먼저 받는 입구 (웹 서버)
+  # ----------------------------------------------------------
+  nginx:
+    image: nginx:stable-alpine    # 공식 nginx, stable(안정) 버전, alpine(아주 작은 리눅스) 기반이라 가벼움
+    restart: unless-stopped
+    # "서버 포트:컨테이너 포트" → 서버 80번으로 들어온 요청을 nginx 컨테이너 80번으로
+    # 브라우저에서 http://서버IP 로 접속하면 기본 포트 80으로 들어옴
+    ports:
+      - "80:80"
+    # fastapi가 healthy가 된 다음에 켜짐 (넘겨줄 대상이 없으면 nginx가 에러로 꺼짐)
+    depends_on:
+      fastapi:
+        condition: service_healthy
+    # 서버의 nginx 설정 파일을 컨테이너 안 nginx 설정 위치에 연결
+    # :ro = read only (컨테이너는 읽기만 하고 수정 못 함)
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+# 이름 있는 볼륨 목록 (docker가 서버 안에 따로 만들어서 관리하는 저장 공간)
+# ./media, ./models처럼 폴더를 직접 연결한 건 여기 안 적음
+volumes:
+  mysql_volume:

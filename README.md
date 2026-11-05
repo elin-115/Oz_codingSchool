@@ -226,6 +226,8 @@ Stage 1~6 단계별로 누가 무엇을 했는지, 세부 내역과 PR 번호를
 | Day06 | 10/29 | [통합 테스트 결과](docs/day06_통합테스트_결과.md) | 팀원별 화면·자동 테스트 결과, 공통 발견(시간 9시간·캐시), 개선 제안 6개 |
 | Day07 | 10/29 | [앱 실행 화면](docs/day07_앱_실행화면.md) | `fastapi run`으로 실행한 API 20개의 프론트 화면 캡처와 동작 설명 |
 | Day08 | 10/30 | [도커 실행 화면](docs/day08_도커_실행화면.md) | Dockerfile·.dockerignore 빌드·실행, docker compose(fastapi + mysql) 실행·--reload 확인 |
+| Day09 | 11/04 | [동시성 문제 해결을 위한 아키텍처 설계](docs/9일차_동시성문제_해결을위한_아키텍처설계.md) | FastAPI + Redis Event-Driven Architecture, AI 워커 분리, Redis 작업 대기열·락 설계와 Excalidraw 도식 |
+| Day10 | 11/04 | [AI 워커 분리 설계](docs/day10_AI워커_분리_설계.md) | FastAPI ↔ Redis ↔ AI 워커 약속(큐·채널·JSON), 규칙, 의존성 그룹, 분담과 테스트 방법 |
 
 ## 📝 작업 내역
 
@@ -241,3 +243,4 @@ Stage 1~6 단계별로 누가 무엇을 했는지, 세부 내역과 PR 번호를
 | Day06 | 10/28~29 | [작업 내역](docs/day06_작업내역.md) | AI 모델 결정(3종 앙상블), 폐렴 예측·결과 목록 API, Grad-CAM 히트맵, 코드 정리, 화면 통합 테스트 |
 | Day07 | 10/29 | [작업 내역](docs/day07_작업내역.md) | 프론트 API 20개 연결 확인(`fastapi run`), API별 실행 화면 캡처, develop → main |
 | Day08 | 10/30 | [작업 내역](docs/day08_작업내역.md) | Dockerfile, torch CPU 전용(12GB → 1.91GB), .dockerignore, docker compose(fastapi + mysql), alembic 자동 적용 |
+| Day10 | 11/04 | [작업 내역](docs/day10_작업내역.md) | 9일차 EDA 설계, Redis 서비스, AI 워커 약속·의존성 분리(app/ai), 워커 Dockerfile·ai-worker 서비스 |

@@ -21,7 +21,7 @@ WORKDIR /app
 # 내 컴퓨터 파일을 상자 안으로 복사
 COPY pyproject.toml uv.lock ./
 # 라이브러리 전부 설치
-RUN uv sync --frozen --no-dev       
+RUN uv sync --frozen --no-default-groups --group app
 
 # 5. 나머지 코드 전부 복사
 COPY . .
@@ -30,4 +30,4 @@ COPY . .
 EXPOSE 8000
 
 # 7. 컨테이너 켤 때 FastAPI 실행
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

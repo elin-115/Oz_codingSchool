@@ -7,15 +7,14 @@ import torch
 from PIL import Image
 from torch import nn
 from torchvision import models, transforms
+from worker.task_contract import MODEL_NAME
 
 # 폐렴 예측 모델을 메모리에 올리고, X-Ray 이미지로 폐렴 여부를 예측
 # app/main.py가 서버를 켤 때 load_model()을 한 번 부르고, API는 predict()만 부른다.
 
 MODELS_DIR = Path(__file__).resolve().parent / "models"  # 모델 파일(.pt)을 넣는 곳 (커밋 안 됨)
 
-# DB ai_analysis_results.ai_model에 저장되는 이름. 같은 이름의 결과가 있으면 다시 예측하지 않으므로
 # 모델·전처리를 바꾸면 이름도 바꿔야 함 (예: ensemble_3models_fold1_v1 → ensemble_3models_v2)
-MODEL_NAME = "ensemble_3models_fold1_v1"
 
 # 앙상블에 쓰는 모델 3종과 fold 수. 파일 이름이 best_model_{모델}_fold{k}.pt 형식 (5 fold 중 속도 때문에 fold1만 사용, 설계 문서 3장)
 MODEL_NAMES = ["efficientnet_b0", "resnet50", "densenet121"]

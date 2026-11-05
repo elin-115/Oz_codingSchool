@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     DB_PORT: str = "3306"
     DB_NAME: str = "ai_health"
 
+    # Redis 설정 (AI 예측 작업 대기열, 결과 Pub/Sub). 도커에서는 compose가 REDIS_HOST=redis로 덮어씀
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+
     # JWT 설정 (SECRET_KEY는 반드시 .env에서 바꿔서 사용)
     SECRET_KEY: str = "change-this-secret-key-in-env"
     JWT_ALGORITHM: str = "HS256"
