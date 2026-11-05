@@ -1,4 +1,5 @@
 import json
+import socket
 from pathlib import Path
 from uuid import uuid4
 
@@ -12,12 +13,16 @@ from worker.task_contract import (
     ERROR_PREDICT_FAILED,
     MODEL_NAME,
     QUEUE_NAME,
+    RESULT_TIMEOUT,
+    processing_queue,
     result_channel,
 )
 
 # AI 워커 실행 파일 (과제 2-2). 실행: uv run python -m worker.main
 # 큐에서 작업을 하나씩 꺼내 폐렴 예측 → 결과를 Publish
-# 워커를 여러 개 띄워도 BRPOP은 작업 하나를 워커 하나에게만 줌 (다중 워커)
+# 워커를 여러 개 띄워도 BLMOVE는 작업 하나를 워커 하나에게만 줌 (다중 워커)
+# BLMOVE는 꺼낸 작업을 워커별 "작업대"(processing 목록)에 올려두고, 결과를 보낸 뒤에 지움
+# → 처리 중에 워커가 죽어도 작업대에 남아 있어서, 다시 켜질 때 큐로 되돌려 이어서 처리함 (미완료 작업 복구)
 # 주고받는 JSON 형식·에러 코드(error_code)는 docs/day10_AI워커_분리_설계.md 2장 참고
 
 
@@ -90,12 +95,26 @@ def handle_task(task: dict) -> dict:
 def main() -> None:
     # 1. 워커가 켜질 때 모델을 한 번만 불러옴
     load_model()
+    worker_name = socket.gethostname()  # 컨테이너 이름(hostname), 재시작해도 그대로
+    processing = processing_queue(worker_name)  # 이 워커 전용 작업대 이름
     print(f"[AI 워커] 시작! {QUEUE_NAME} 에서 작업을 기다리는 중...")
 
-    # 2. 무한 반복: 작업 하나 꺼내기 → 처리 → 결과 보내기
+    # 2. 지난번에 처리하다 죽은 작업이 작업대에 남아 있으면 큐로 되돌림 (미완료 작업 복구)
+    #    작업대 왼쪽(최신)부터 꺼내 큐 오른쪽에 넣음 → 가장 오래된 작업이 다음 차례가 됨
+    recovered = 0
+    while redis_client.lmove(processing, QUEUE_NAME, "LEFT", "RIGHT"):
+        recovered += 1
+    if recovered:
+        print(f"[AI 워커] 미완료 작업 {recovered}개 복구")
+
+    # 3. 무한 반복: 작업 하나 꺼내기 → 처리 → 결과 보내기 → 작업대에서 지우기
     while True:
-        # 큐가 비어 있으면 작업이 들어올 때까지 여기서 기다림
-        _, raw_task = redis_client.brpop(QUEUE_NAME)
+        # 큐에서 꺼내면서 동시에 작업대로 옮김 (원자적이라 중간에 사라지지 않음)
+        # 큐가 비어 있으면 작업이 들어올 때까지 여기서 기다림 (timeout=0)
+        raw_task = redis_client.blmove(QUEUE_NAME, processing, 0, src="RIGHT", dest="LEFT")
+
+        # 작업대에 유효기간을 걸어둠 → 워커가 새 컨테이너로 바뀌어 버려진 작업대는 Redis가 알아서 지움
+        redis_client.expire(processing, RESULT_TIMEOUT * 2)
 
         task_id = "unknown"  # 메시지가 망가져서 task_id를 못 읽을 때 쓰는 이름
         try:
@@ -103,7 +122,7 @@ def main() -> None:
             task_id = task["task_id"]
             result = handle_task(task)
         except Exception as e:
-            # 3. 어떤 에러가 나도 워커는 죽지 않고 error 결과를 보냄
+            # 어떤 에러가 나도 워커는 죽지 않고 error 결과를 보냄
             print(f"[AI 워커] 작업 실패 task_id={task_id}: {e}")
             result = {
                 "task_id": task_id,
@@ -112,8 +131,11 @@ def main() -> None:
                 "error": "AI 예측 처리 중 오류가 발생했습니다.",
             }
 
-        # 4. 이 작업의 결과 채널로 보내기 (dict → 글자(JSON))
+        # 이 작업의 결과 채널로 보내기 (dict → 글자(JSON))
         redis_client.publish(result_channel(task_id), json.dumps(result))
+
+        # 작업대에서 방금 끝낸 작업 1개 삭제 → 처리 끝 (결과를 보낸 뒤에 지워야 복구가 안전함)
+        redis_client.lrem(processing, 1, raw_task)
         print(f"[AI 워커] 완료 task_id={task_id} status={result['status']}")
 
 

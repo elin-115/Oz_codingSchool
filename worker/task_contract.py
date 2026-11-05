@@ -22,3 +22,9 @@ def result_channel(task_id: str) -> str:
     # 작업마다 자기 결과만 받도록 채널 이름에 task_id를 붙임
     # 예: "ai:predict:result:3f2a..."
     return f"ai:predict:result:{task_id}"
+
+
+def processing_queue(worker_name: str) -> str:
+    # 워커가 꺼낸 작업을 끝날 때까지 올려두는 "작업대" (워커마다 따로)
+    # 예: "ai:predict:processing:3a1b2c..."
+    return f"ai:predict:processing:{worker_name}"
