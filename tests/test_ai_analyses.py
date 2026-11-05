@@ -1,3 +1,5 @@
+
+import json
 from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -11,7 +13,12 @@ from app.core.dependencies import get_current_user
 from app.core.enums import UserRole
 from app.main import app
 from app.services import ai_analyses as ai_analysis_service
-from worker import model as ai_model
+from worker.task_contract import (
+    ERROR_IMAGE_NOT_FOUND,
+    ERROR_MODEL_NOT_READY,
+    ERROR_PREDICT_FAILED,
+    MODEL_NAME,
+)
 
 AUTH_HEADERS = {"Authorization": "Bearer integration-test-token"}
 
@@ -42,21 +49,20 @@ def api_client():
 
 
 @pytest.fixture
-def prediction_setup(monkeypatch, tmp_path):
-    """실제 예측 서비스 흐름은 실행하고 파일·모델·저장소 경계만 대체한다."""
-    image_path = tmp_path / "xray.png"
-    image_path.write_bytes(b"test image")
+def prediction_setup(monkeypatch):
+    """Redis Worker 응답과 저장소 경계만 대체한다."""
 
     record = SimpleNamespace(
         xray_images=[SimpleNamespace(image_url="/media/xray/test.png")]
     )
+
     saved_result = SimpleNamespace(
         id=101,
         record_id=7,
         is_pneumonia=True,
         confidence=93.25,
-        heatmap_url="/media/heatmap/test.png",
-        ai_model=ai_model.MODEL_NAME,
+        heatmap_url=None,
+        ai_model=MODEL_NAME,
         created_at=datetime(2026, 10, 28, 10, 0, 0),
     )
 
@@ -64,17 +70,56 @@ def prediction_setup(monkeypatch, tmp_path):
     get_existing = AsyncMock(side_effect=[None, saved_result])
     create_analysis = AsyncMock(return_value=saved_result)
     get_analyses = AsyncMock(return_value=[saved_result])
-    predict = MagicMock(return_value=SimpleNamespace(is_pneumonia=True, confidence=93.25))
-    make_heatmap = MagicMock(return_value=object())
+
+    redis_lpush = AsyncMock()
+
+    worker_result = {
+        "status": "success",
+        "is_pneumonia": True,
+        "confidence": 93.25,
+        "heatmap_url": None,
+        "ai_model": MODEL_NAME,
+    }
+
+    class FakePubSub:
+        async def subscribe(self, channel):
+            self.channel = channel
+
+        async def get_message(self, **kwargs):
+            task = json.loads(redis_lpush.await_args.args[1])
+
+            result = {
+                **worker_result,
+                "task_id": task["task_id"],
+            }
+
+            return {
+                "type": "message",
+                "data": json.dumps(result),
+            }
+
+        async def unsubscribe(self, channel):
+            pass
+
+        async def aclose(self):
+            pass
+
+    fake_pubsub = FakePubSub()
 
     monkeypatch.setattr(
-        ai_analysis_service.medical_record_service, "get_record_or_404", get_record
+        ai_analysis_service.medical_record_service,
+        "get_record_or_404",
+        get_record,
     )
     monkeypatch.setattr(
-        ai_analysis_service.ai_analysis_repository, "get_existing_result", get_existing
+        ai_analysis_service.ai_analysis_repository,
+        "get_existing_result",
+        get_existing,
     )
     monkeypatch.setattr(
-        ai_analysis_service.ai_analysis_repository, "create_analysis", create_analysis
+        ai_analysis_service.ai_analysis_repository,
+        "create_analysis",
+        create_analysis,
     )
     monkeypatch.setattr(
         ai_analysis_service.ai_analysis_repository,
@@ -82,22 +127,40 @@ def prediction_setup(monkeypatch, tmp_path):
         get_analyses,
     )
     monkeypatch.setattr(
-        ai_analysis_service, "media_url_to_path", lambda _url: image_path
+        ai_analysis_service,
+        "media_url_to_path",
+        lambda _url: SimpleNamespace(is_file=lambda: True),
     )
     monkeypatch.setattr(
-        ai_analysis_service, "save_heatmap_image", lambda _image: saved_result.heatmap_url
+        ai_analysis_service.redis_client,
+        "pubsub",
+        lambda: fake_pubsub,
     )
-    monkeypatch.setattr(ai_analysis_service.ai_model, "predict", predict)
-    monkeypatch.setattr(ai_analysis_service.ai_model, "make_heatmap", make_heatmap)
+    monkeypatch.setattr(
+        ai_analysis_service.redis_client,
+        "lpush",
+        redis_lpush,
+    )
+
+    # Redis Lock 획득 및 해제를 Mock 처리
+    monkeypatch.setattr(
+        ai_analysis_service,
+        "acquire_predict_lock",
+        AsyncMock(return_value=True),
+    )
+    monkeypatch.setattr(
+        ai_analysis_service,
+        "release_predict_lock",
+        AsyncMock(return_value=None),
+    )
 
     return SimpleNamespace(
-        image_path=image_path,
         get_record=get_record,
         get_existing=get_existing,
         create_analysis=create_analysis,
         get_analyses=get_analyses,
-        predict=predict,
-        make_heatmap=make_heatmap,
+        redis_lpush=redis_lpush,
+        worker_result=worker_result,
         result=saved_result,
     )
 
@@ -116,12 +179,12 @@ def test_predict_then_list_and_reuse_saved_result(api_client, prediction_setup):
         "record_id": 7,
         "is_pneumonia": True,
         "confidence": 93.25,
-        "heatmap_url": "/media/heatmap/test.png",
-        "ai_model": ai_model.MODEL_NAME,
-        "created_at": "2026-10-28T10:00:00Z",  # 응답은 UTC 표시(Z)를 붙여 내보냄
+        "heatmap_url": None,
+        "ai_model": MODEL_NAME,
+        "created_at": "2026-10-28T10:00:00Z",
     }
-    prediction_setup.predict.assert_called_once_with(prediction_setup.image_path)
-    prediction_setup.make_heatmap.assert_called_once_with(prediction_setup.image_path)
+
+    prediction_setup.redis_lpush.assert_awaited_once()
     prediction_setup.create_analysis.assert_awaited_once()
 
     # 첫 예측이 저장된 뒤 목록 API에서도 같은 분석 결과를 확인한다.
@@ -132,13 +195,13 @@ def test_predict_then_list_and_reuse_saved_result(api_client, prediction_setup):
     assert list_response.json()[0]["id"] == 101
     assert list_response.json()[0]["confidence"] == 93.25
 
-    # 저장된 동일 모델 결과가 있으면 추론·저장을 반복하지 않는다.
+    # 저장된 동일 모델 결과가 있으면 Worker 요청·저장을 반복하지 않는다.
     repeated_response = client.post(
         "/api/v1/medical-records/7/predict", headers=AUTH_HEADERS
     )
     assert repeated_response.status_code == 200
     assert repeated_response.json()["id"] == 101
-    prediction_setup.predict.assert_called_once()
+    prediction_setup.redis_lpush.assert_awaited_once()
     prediction_setup.create_analysis.assert_awaited_once()
 
 
@@ -228,15 +291,15 @@ def test_predict_returns_404_when_xray_is_missing(
 
 
 def test_predict_returns_503_when_model_is_not_loaded(
-    api_client, prediction_setup, monkeypatch
+    api_client, prediction_setup
 ):
     client, _user, _db = api_client
-    monkeypatch.setattr(
-        ai_analysis_service.ai_analysis_repository,
-        "get_existing_result",
-        AsyncMock(return_value=None),
-    )
-    prediction_setup.predict.side_effect = ai_model.ModelNotLoadedError
+
+    prediction_setup.worker_result.update({
+        "status": "error",
+        "error_code": ERROR_MODEL_NOT_READY,
+        "error": "AI 모델이 준비되지 않았습니다.",
+    })
 
     response = client.post(
         "/api/v1/medical-records/7/predict", headers=AUTH_HEADERS
@@ -244,6 +307,55 @@ def test_predict_returns_503_when_model_is_not_loaded(
 
     assert response.status_code == 503
     assert response.json()["detail"] == "AI 모델이 준비되지 않았습니다."
+
+
+@pytest.mark.parametrize(
+    "error_code, expected_status",
+    [
+        (ERROR_IMAGE_NOT_FOUND, 404),
+        (ERROR_MODEL_NOT_READY, 503),
+        (ERROR_PREDICT_FAILED, 500),
+    ],
+)
+def test_predict_returns_status_by_worker_error_code(
+    api_client,
+    prediction_setup,
+    error_code,
+    expected_status,
+):
+    client, _user, _db = api_client
+
+    prediction_setup.worker_result.update({
+        "status": "error",
+        "error_code": error_code,
+        "error": "Worker 테스트 오류",
+    })
+
+    response = client.post(
+        "/api/v1/medical-records/7/predict", headers=AUTH_HEADERS
+    )
+
+    assert response.status_code == expected_status
+    assert response.json()["detail"] == "Worker 테스트 오류"
+
+
+def test_predict_returns_504_when_worker_times_out(
+    api_client, prediction_setup, monkeypatch
+):
+    client, _user, _db = api_client
+
+    monkeypatch.setattr(
+        ai_analysis_service,
+        "RESULT_TIMEOUT",
+        0,
+    )
+
+    response = client.post(
+        "/api/v1/medical-records/7/predict", headers=AUTH_HEADERS
+    )
+
+    assert response.status_code == 504
+    assert response.json()["detail"] == "AI 예측 시간이 초과되었습니다."
 
 
 def test_list_returns_empty_array_when_record_has_no_analyses(

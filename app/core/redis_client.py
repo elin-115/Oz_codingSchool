@@ -11,4 +11,8 @@ from app.core.config import settings
 # ===== [김도엽] Redis 비동기 클라이언트 연결 =====
 # TODO: settings.REDIS_HOST, settings.REDIS_PORT로 클라이언트 만들기
 #       decode_responses=True를 주면 bytes 대신 문자열로 받음
-redis_client: redis.Redis = ...
+redis_client: redis.Redis = redis.Redis(
+    host=settings.REDIS_HOST,
+    port=settings.REDIS_PORT,
+    decode_responses=True,
+)
