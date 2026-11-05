@@ -69,6 +69,8 @@ services:
     build:
       context: .
       dockerfile: worker/Dockerfile   # 워커 Dockerfile 경로
+    # Redis 연결이 끊기는 등으로 워커가 종료돼도 자동으로 다시 켜짐
+    restart: unless-stopped
     environment:
       REDIS_HOST: redis
       PYTHONUNBUFFERED: "1"           # print가 바로 docker logs에 보이게 (안 하면 한참 뒤에 몰아서 나옴)
