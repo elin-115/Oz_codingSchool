@@ -73,7 +73,7 @@ async def predict_record(
             status_code=status.HTTP_409_CONFLICT,
             detail="이미 AI 예측이 진행 중입니다.",
         )
-    # 동일 진료기록의 중복 예측 방지 Lock
+
     task_id = str(uuid4())
     channel = result_channel(task_id)
 
@@ -135,7 +135,7 @@ async def predict_record(
                 detail="AI 워커 결과의 작업 ID가 일치하지 않습니다.",
             )
 
-         # 10. Worker 오류 처리
+        # 10. Worker 오류 처리
         if result.get("status") != "success":
             error_message = result.get(
                 "error",
