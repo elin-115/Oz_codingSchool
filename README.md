@@ -13,10 +13,10 @@
 | 4 | Git & GitHub Branch 전략 | ✅ Day01~02 | [Git Branch 전략](docs/day02_git_branch_전략.md) |
 | 5 | 프로젝트 세팅 | ✅ Day01~03 | [프로젝트 뜯어보기](docs/day03_프로젝트_뜯어보기.md), [DB 마이그레이션](docs/day03_db_migration.md) |
 | 6 | API·AI 워커 코드 작성과 병합 | ✅ Day02~06 (PR #4~#57) | API 20개, `worker/model.py` |
-| 7 | 아키텍처 설계 및 적용 | ✅ Day03~07 | 레이어드 아키텍처, [앱 실행 화면](docs/day07_앱_실행화면.md) |
-| 8 | 도커 인프라 파일 작성 | ✅ Day08 (PR #61~#67) | `app/Dockerfile`, `.dockerignore`, `docker-compose.yml`, [도커 실행 화면](docs/day08_도커_실행화면.md) |
-| 9 | AWS 배포 | ⏳ 진행 예정 | - |
-| 10 | QA 진행 | ✅ 기능별 통합 테스트 (Day04~06) / ⏳ 배포 후 QA 예정 | [통합 테스트 시나리오](docs/day05_통합테스트_시나리오.md), [통합 테스트 결과](docs/day06_통합테스트_결과.md) |
+| 7 | 아키텍처 설계 및 적용 | ✅ Day03~07 / Day09~10 (Redis + AI 워커 분리) | 레이어드 아키텍처, [앱 실행 화면](docs/day07_앱_실행화면.md), [동시성 설계](docs/9일차_동시성문제_해결을위한_아키텍처설계.md), [AI 워커 분리 설계](docs/day10_AI워커_분리_설계.md) |
+| 8 | 도커 인프라 파일 작성 | ✅ Day08 (PR #61~#67) / Day10 (PR #77·#78) | `app/Dockerfile`, `worker/Dockerfile`, `.dockerignore`, `docker-compose.yml`, [도커 실행 화면](docs/day08_도커_실행화면.md) |
+| 9 | AWS 배포 | ✅ 11/02~05 (PR #71~#74, #87) | [AWS 배포 문서](docs/aws/README.md), `docker-compose.prod.yml`, `nginx/default.conf` |
+| 10 | QA 진행 | ✅ 기능별 통합 테스트 (Day04~06) / Day10 통합 테스트 / 배포 서버 기능 테스트 (11/05) | [통합 테스트 시나리오](docs/day05_통합테스트_시나리오.md), [통합 테스트 결과](docs/day06_통합테스트_결과.md), [Day10 통합 테스트](docs/day10_통합테스트.md), [배포 서버 테스트](docs/aws/07_서버_실행_테스트.md) |
 
 ### 📅 진행 타임라인
 
@@ -38,19 +38,21 @@ gantt
     section 인프라·검증
     10 기능별 통합 테스트(QA)   :done, s10, 2026-10-26, 4d
     8 도커 인프라 파일 작성     :done, s8, 2026-10-30, 1d
+    section 배포·확장
+    9 AWS 배포                  :done, s9, 2026-11-02, 4d
+    7 Redis·AI 워커 분리        :done, s7b, 2026-11-04, 2d
+    10 Day10·배포 서버 QA       :done, s10b, 2026-11-05, 1d
 ```
-
-> 9 AWS 배포와 배포 후 QA는 진행 예정이라 타임라인에 넣지 않음
 
 ### 👥 팀원별 기여
 
 | 팀원 | 주요 작업 |
 |---|---|
 | 공통 | 팀 규칙·브랜치 전략, 차트 번호 자동 발급, 일별 작업내역 정리 |
-| 김지연 | DB 모델·마이그레이션, 단계별 설계 문서·뼈대, 회원가입·토큰 재발급·회원 목록 검색, 환자 영구 삭제·진료기록 등록, AI 모델 선택·예측·Grad-CAM 히트맵, Dockerfile·torch CPU 전용·alembic 자동 적용 |
-| 김도엽 | 회원 상세·삭제, 로그인·로그아웃(+ pytest), 환자 등록·목록(검색·필터), AI 폐렴 예측 `POST /predict`, compose mysql 서비스 |
-| 박유정 | 회원 생성, 내 정보 조회·수정·회원 탈퇴, 진료기록 목록·상세, AI 예측 결과 목록 `GET /analyses`, `.dockerignore` |
-| 이명석 | 회원 정보 수정, 비밀번호 변경·회원 목록·권한 변경, 환자 상세·수정, 프론트 예측 결과 표·자동 테스트, compose fastapi 서비스 |
+| 김지연 | DB 모델·마이그레이션, 단계별 설계 문서·뼈대, 회원가입·토큰 재발급·회원 목록 검색, 환자 영구 삭제·진료기록 등록, AI 모델 선택·예측·Grad-CAM 히트맵, Dockerfile·torch CPU 전용·alembic 자동 적용, AWS 배포, Redis·워커 약속·이미지 분리·에러 코드·따닥 방지 락·미완료 작업 복구 |
+| 김도엽 | 회원 상세·삭제, 로그인·로그아웃(+ pytest), 환자 등록·목록(검색·필터), AI 폐렴 예측 `POST /predict`, compose mysql 서비스, FastAPI ↔ Redis 예측 연동 |
+| 박유정 | 회원 생성, 내 정보 조회·수정·회원 탈퇴, 진료기록 목록·상세, AI 예측 결과 목록 `GET /analyses`, `.dockerignore`, AI 워커(큐 루프·예측·결과 전송) |
+| 이명석 | 회원 정보 수정, 비밀번호 변경·회원 목록·권한 변경, 환자 상세·수정, 프론트 예측 결과 표·자동 테스트, compose fastapi 서비스, Day10 통합 테스트(Windows 전 항목) |
 
 - Day03 템플릿 학습 정리와 단계별 통합 테스트는 4명 모두 참여
 
@@ -127,8 +129,17 @@ gantt
   - AI 모델은 요청마다 읽지 않고 서버가 켜질 때 `lifespan`에서 한 번만 불러옴
   - 모델 파일은 깃에 올리지 않고 드라이브로 공유
   - Stage 7에서 `fastapi run`으로 실행해 프론트와 API 20개 연결을 화면으로 확인
+- **Day09~10 재설계**: 예측이 API를 붙잡고 동시 요청 때 중복 저장되는 문제를 찾아 **Redis + AI 워커**로 분리
+  ```
+  FastAPI ─LPUSH─▶ Redis 큐 ─BLMOVE─▶ AI 워커 (모델 로딩·추론·히트맵)
+     ▲                                      │
+     └──── Pub/Sub 결과 (ai:predict:result:{task_id}) ◀──┘  → FastAPI가 DB 저장
+  ```
+  - FastAPI는 모델을 불러오지 않고(이미지 1.91GB → 960MB), 워커는 `--scale`로 여러 개 띄움
+  - 같은 진료기록 동시 예측은 Redis 락(`SET NX`)으로 409, 예측 중 워커가 죽어도 작업대(BLMOVE)로 복구
 - **돌아보며**: 
     - 계층이 나뉘어 있어 한 사람이 service를, 다른 사람이 repository를 고쳐도 충돌이 적었음
+    - FastAPI와 워커가 주고받는 이름·형식(`worker/task_contract.py`)을 먼저 정하니 두 사람이 서로 기다리지 않고 동시에 개발할 수 있었음
 
 ### 8. 도커 인프라 관련 파일 작성
 
@@ -144,19 +155,27 @@ gantt
 
 ### 9. AWS 배포
 
-- **진행 예정**
-  - 도커 이미지를 기준으로 서버에 배포할 계획 (compose 그대로 실행)
-  - `.env`는 서버에서 직접 만들고, 모델 파일은 별도로 업로드
-  - 보안 그룹에서 필요한 포트만 열기, DB 포트는 외부에 열지 않기
+- **어떻게**: EC2 한 대에 Docker Compose로 **Nginx + FastAPI + MySQL**을 띄움 (단계별 기록은 [AWS 배포 문서](docs/aws/README.md))
+  - AWS 계정(Free 플랜, 서울 리전, 루트 MFA, 제로 지출 예산) → EC2(Ubuntu 24.04, t3.micro, 30GiB) → 도커 설치 → **스왑 4GB** (RAM 1GB라 모델 로딩 시 메모리 부족 방지)
+  - 맥(ARM)에서 `docker buildx --platform linux/amd64`로 빌드해 Docker Hub에 푸시
+  - 서버용 `docker-compose.prod.yml` + `nginx/default.conf`: 외부에는 nginx 80번만 열고 fastapi·mysql은 내부 전용, 업로드 10M·타임아웃 120s
+  - 비밀 값은 서버의 `.prod.env`에만 두고, 문서·캡처의 계정 ID·IP는 가림
+- **결과**: nginx·fastapi·mysql 모두 healthy, 2일 동안 재시작 없이 동작. 배포 주소에서 회원·관리자·환자·진료기록·AI 예측 기능 테스트 통과
+- **돌아보며**: 
+    - 맥에서 만든 이미지가 서버에서 `exec format error`로 안 떠서, 이미지가 빌드한 컴퓨터의 CPU 구조를 따라간다는 걸 알게 됨
+    - 첫 실행 때 마이그레이션·모델 로딩이 healthcheck 판정보다 오래 걸려 unhealthy가 됨 → `start_period: 120s`. 작은 서버에서는 준비 시간까지 설정해야 함
+    - 배포 이미지는 Day10 이전 구조(fastapi가 모델 직접 로딩)이고, Redis·워커 구조는 로컬에서만 실행함
 
 ### 10. QA 진행
 
 - **어떻게**: 단계마다 API를 merge한 뒤 프론트 화면 기준 시나리오를 만들고 4명이 각자 실행
   - 환자·진료기록 6단계 시나리오, AI 예측·재예측·오류 응답 시나리오
-  - pytest 자동 테스트(로그인, AI 예측 등 12개)
+  - pytest 자동 테스트(로그인, AI 예측 등 12개 → Day10 이후 16개)
   - 팀원별 결과를 모아 공통 발견을 정리하고 개선 PR로 반영
+  - **Day10 통합 테스트**: 4명이 각자 PC(macOS·Windows)에서 8개 항목(서비스 분리, 기본 흐름, 결과 재사용, 다중 워커, 따닥 방지, 에러 코드, 미완료 작업 복구, pytest) 전부 통과 → [Day10 통합 테스트](docs/day10_통합테스트.md)
+  - **배포 서버 기능 테스트**: 배포 주소에서 브라우저로 전체 기능 확인 → [서버 실행·테스트](docs/aws/07_서버_실행_테스트.md)
 - **발견해서 고친 것 (예)**: 화면 시각이 9시간 이르게 보임(UTC), 히트맵 칸이 안 보임(브라우저 캐시), 휴대폰 번호 형식, 영어 오류 메시지, 버튼 이름
-- **남은 것**: AWS 배포 후 배포 환경에서 전체 시나리오 다시 실행
+- **기록해 둔 것 (Day10)**: 503·504일 때 화면에는 공통 문구만 보임, 504 뒤 큐에 남은 작업은 결과가 버려짐 (둘 다 서버는 의도대로 동작)
 - **돌아보며**: 같은 시나리오라도 사람마다 다른 문제를 발견해서, 4명이 모두 직접 테스트한 것이 효과적이었음
 
 
@@ -191,12 +210,14 @@ uv run alembic downgrade -1
 프로젝트 루트에 `.env`를 만든 뒤(`.env.example` 참고) 실행함.
 
 ```bash
-docker compose up --build
+docker compose up --build -d --scale ai-worker=2
 ```
 
-- fastapi + mysql 컨테이너가 함께 뜸. mysql이 준비된 뒤 fastapi가 켜짐
+- fastapi + mysql + redis + ai-worker(2개) 컨테이너가 함께 뜸. mysql·redis가 준비된 뒤 fastapi·워커가 켜짐
+- AI 모델은 **ai-worker만** 불러옴. 예측 요청은 Redis 큐를 거쳐 워커가 처리함
+- 예전 환경에서 처음 실행할 때는 한 번 `docker compose down && docker volume rm oz_codingschool_venv_volume`
 - fastapi가 켜질 때 `alembic upgrade head`가 자동으로 실행돼 테이블이 최신 상태로 맞춰짐 (따로 실행할 필요 없음)
-- 로컬 코드(`app/`, `alembic/`, `worker/`, `static/`)가 컨테이너에 연결돼 있어 수정하면 `--reload`로 바로 반영됨
+- 로컬 코드(`app/`, `alembic/`, `worker/`, `static/`)가 컨테이너에 연결돼 있어 fastapi는 수정하면 `--reload`로 바로 반영됨 (워커는 `docker compose restart ai-worker`)
 - AI 모델 파일(`worker/models/*.pt`)은 Drive에서 받아 로컬 `worker/models/`에 두면 됨
 - 접속: http://localhost:8000/docs
 
@@ -206,7 +227,7 @@ docker compose up --build
 
 ## 📋 팀 작업판
 
-Stage 1~6 단계별로 누가 무엇을 했는지, 세부 내역과 PR 번호를 한 페이지로 정리함.
+Stage 1~10, 과정 총정리, AWS 배포까지 단계별로 누가 무엇을 했는지, 세부 내역과 PR 번호를 한 페이지로 정리함.
 
 👉 [3조 폐렴 백오피스 작업판](https://claude.ai/artifact/XAdRyoYF6AgLyK2kV5DR8Z)
 
@@ -228,6 +249,8 @@ Stage 1~6 단계별로 누가 무엇을 했는지, 세부 내역과 PR 번호를
 | Day08 | 10/30 | [도커 실행 화면](docs/day08_도커_실행화면.md) | Dockerfile·.dockerignore 빌드·실행, docker compose(fastapi + mysql) 실행·--reload 확인 |
 | Day09 | 11/04 | [동시성 문제 해결을 위한 아키텍처 설계](docs/9일차_동시성문제_해결을위한_아키텍처설계.md) | FastAPI + Redis Event-Driven Architecture, AI 워커 분리, Redis 작업 대기열·락 설계와 Excalidraw 도식 |
 | Day10 | 11/04 | [AI 워커 분리 설계](docs/day10_AI워커_분리_설계.md) | FastAPI ↔ Redis ↔ AI 워커 약속(큐·채널·JSON), 규칙, 의존성 그룹, 분담과 테스트 방법 |
+| Day10 | 11/05 | [Day10 통합 테스트](docs/day10_통합테스트.md) | 4명 통합 테스트 8개 항목(다중 워커·따닥 방지·에러 코드·미완료 작업 복구 등) 결과와 캡처 |
+| AWS | 11/02~05 | [AWS 배포](docs/aws/README.md) | EC2 + Docker Compose(Nginx·FastAPI·MySQL) 배포 0~8단계, 배포 서버 기능 테스트 |
 
 ## 📝 작업 내역
 
@@ -243,4 +266,4 @@ Stage 1~6 단계별로 누가 무엇을 했는지, 세부 내역과 PR 번호를
 | Day06 | 10/28~29 | [작업 내역](docs/day06_작업내역.md) | AI 모델 결정(3종 앙상블), 폐렴 예측·결과 목록 API, Grad-CAM 히트맵, 코드 정리, 화면 통합 테스트 |
 | Day07 | 10/29 | [작업 내역](docs/day07_작업내역.md) | 프론트 API 20개 연결 확인(`fastapi run`), API별 실행 화면 캡처, develop → main |
 | Day08 | 10/30 | [작업 내역](docs/day08_작업내역.md) | Dockerfile, torch CPU 전용(12GB → 1.91GB), .dockerignore, docker compose(fastapi + mysql), alembic 자동 적용 |
-| Day10 | 11/04 | [작업 내역](docs/day10_작업내역.md) | 9일차 EDA 설계, Redis 서비스, AI 워커 약속·의존성 분리(app/ai), 워커 Dockerfile·ai-worker 서비스 |
+| Day10 | 11/04~05 | [작업 내역](docs/day10_작업내역.md) | 9일차 EDA 설계, Redis 서비스, AI 워커 약속·의존성 분리(app/ai), 워커 Dockerfile·ai-worker 서비스, FastAPI 연동·워커, 에러 코드·따닥 방지 락, 미완료 작업 복구, 통합 테스트 |
